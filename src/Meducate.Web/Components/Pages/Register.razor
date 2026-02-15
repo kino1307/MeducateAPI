@@ -1,0 +1,162 @@
+﻿
+@page "/Register"
+@rendermode InteractiveServer
+@inject Meducate.Web.Services.ApiService Api
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+
+@using Meducate.Web.Components.Shared;
+@using Meducate.Web.Models;
+
+<PageTitle>@(_isCreateMode ? "Create Account" : "Sign In") - Meducate API</PageTitle>
+
+<div class="container min-vh-100 d-flex justify-content-center pt-5">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-6 col-lg-5">
+
+            <h3 class="fw-bold mb-3 text-center">@(_isCreateMode ? "Create account" : "Sign in")</h3>
+
+            @if (_isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading…</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+            <div class="card">
+                <div class="card-body">
+
+                    @if (_form is not null && !IsCompleted)
+                    {
+                        <EditForm FormName="UserRegistrationForm" Model="_form" OnValidSubmit="Submit" class="was-validated">
+                            <label for="usernameInput" class="form-label h5">Email address</label>
+                            <InputText id="usernameInput" @bind-Value="_form.Username" type="email" class="form-control" required />
+
+                            <p class="text-muted mt-2 small">We'll send you a link to @(_isCreateMode ? "get started" : "sign in").</p>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-end">
+                                <SubmitButton Classes="btn-primary" IsLoading="_isSubmitting">Continue</SubmitButton>
+                            </div>
+                        </EditForm>
+                    }
+
+                    @if (IsCompleted)
+                    {
+                        <div class="text-center py-3">
+                            <h5 class="fw-semibold mb-2">Check your email</h5>
+                            <p class="text-muted mb-3">
+                                We've sent a @(_isCreateMode ? "verification" : "sign-in") link to <strong>@_form?.Username</strong>.<br />
+                                Click the link in the email to continue.
+                            </p>
+                            <div class="alert alert-success" role="alert">
+                                You can safely close this page.
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Alert) && !IsCompleted)
+                    {
+                        <div class="alert @AlertCss mt-3" role="alert">
+                            @Alert
+                        </div>
+                    }
+
+                </div>
+            </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isCreateMode;
+
+    [SupplyParameterFromQuery(Name = "mode")]
+    private string? Mode { get; set; }
+
+    private sealed record UserRegistrationRequestForm
+    {
+        public string Username { get; set; } = "";
+    }
+
+    [SupplyParameterFromForm]
+    private UserRegistrationRequestForm? _form { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _form ??= new();
+        _isCreateMode = string.Equals(Mode, "create", StringComparison.OrdinalIgnoreCase);
+
+        // Check if cookie exists before making API call
+        var hasCookie = HttpContextAccessor.HttpContext?.Request.Cookies.ContainsKey("meducateapi_auth") ?? false;
+
+        if (!hasCookie)
+        {
+            // No cookie = not authenticated, show the form
+            _isLoading = false;
+            return;
+        }
+
+        var userStatus = await Api.GetUserStatusAsync();
+
+        if (userStatus is not null && userStatus.IsEmailVerified)
+        {
+            if (userStatus.OrganisationId is not null)
+            {
+                if (userStatus.HasApiKeys)
+                    Nav.NavigateTo("/dashboard", replace: true);
+                else
+                    Nav.NavigateTo($"/api-key?orgId={userStatus.OrganisationId}", replace: true);
+            }
+            else
+            {
+                Nav.NavigateTo("/create-organisation", replace: true);
+            }
+
+            return;
+        }
+
+        _isLoading = false;
+    }
+
+    private bool _isSubmitting;
+
+    public string? Alert { get; set; }
+    public string AlertCss { get; set; } = "alert-info";
+    private bool _isCompleted;
+
+    private bool IsCompleted => _isCompleted;
+
+    private async Task Submit()
+    {
+        if (_form is null || _isSubmitting)
+            return;
+
+        _isSubmitting = true;
+
+        try
+        {
+            var response = await Api.RegisterUserAsync(_form.Username);
+
+            Alert = response.Message;
+            AlertCss = response.IsSuccess ? "alert-success" : "alert-danger";
+            _isCompleted = response.IsSuccess;
+        }
+        catch
+        {
+            Alert = "Unable to register at this time. Please try again later.";
+            AlertCss = "alert-danger";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

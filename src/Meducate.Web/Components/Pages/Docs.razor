@@ -1,0 +1,197 @@
+@page "/docs"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Nav
+@inject Meducate.Web.Services.ApiService Api
+@implements IAsyncDisposable
+
+<PageTitle>Documentation - Meducate API</PageTitle>
+
+<HeadContent>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.31.2/swagger-ui.css" integrity="sha384-KX9Rx9vM1AmUNAn07bPAiZhFD4C8jdNgG6f5MRNvR+EfAxs2PmMFtUUazui7ryZQ" crossorigin="anonymous" />
+</HeadContent>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <h1 class="fw-bold mb-3">Documentation</h1>
+
+            <p class="lead">Meducate API provides structured, consistent, and up-to-date educational medical information through a simple, developer-friendly API.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">What Meducate API does</h4>
+
+            <p>Meducate aggregates medical reference data from external providers and processes it using large language models (LLMs). This data is normalised and structured into predictable formats with <strong>ICD-10 standardized categorization</strong> that can be reliably consumed by applications.</p>
+
+            <p>All health topics are classified by type (Disease, Drug, Procedure, etc.) and assigned to standardized medical categories based on ICD-10 chapters—such as Respiratory System, Circulatory System, Mental & Behavioral, and more—ensuring consistent, industry-standard medical classification across all data.</p>
+
+            <p>To ensure information remains current, all source data is reprocessed and summarised <strong>daily</strong> using automated background jobs.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Authentication</h4>
+
+            <p>All API requests must include your organisation's API key using the <code>X-Api-Key</code> request header.</p>
+
+            <pre class="bg-light p-3 rounded mt-3">X-Api-Key: YOUR_API_KEY</pre>
+            <p class="text-muted mt-2">Keep your API key secure. Do not expose it in client-side or public applications.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Usage limits</h4>
+
+            <ul class="mt-3">
+                <li><strong>1,000 requests per day</strong> per API key</li>
+                <li>Usage resets every 24 hours (midnight UTC)</li>
+                <li>Requests exceeding the limit will receive a 429 response</li>
+                <li>You can create up to 5 API keys per organisation</li>
+            </ul>
+
+            <hr>
+
+            <h4 class="fw-semibold">Try it out</h4>
+            <p>Use the interactive explorer below to browse endpoints and test requests. Enter your <code>X-Api-Key</code> via the <strong>Authorize</strong> button to authenticate.</p>
+
+        </div>
+    </div>
+</div>
+
+<div class="container mt-3 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-9">
+            <div id="swagger-ui"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Hide the default Swagger top bar and info section */
+    #swagger-ui .swagger-ui .information-container,
+    #swagger-ui .swagger-ui .scheme-container { display: none; }
+
+    /* Clean up the wrapper */
+    #swagger-ui .swagger-ui .swagger-container { padding: 0; }
+    #swagger-ui .swagger-ui .wrapper { padding: 0; max-width: 100%; }
+
+    /* Rounded cards for each operation */
+    #swagger-ui .swagger-ui .opblock {
+        border-radius: 0.5rem;
+        border: 1px solid var(--bs-border-color, #dee2e6);
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        margin-bottom: 0.75rem;
+    }
+
+    #swagger-ui .swagger-ui .opblock .opblock-summary {
+        border-radius: 0.5rem;
+        padding: 0.6rem 1rem;
+    }
+
+    /* Soften the GET method colours */
+    #swagger-ui .swagger-ui .opblock.opblock-get {
+        background: rgba(var(--bs-success-rgb, 25,135,84), .05);
+        border-color: rgba(var(--bs-success-rgb, 25,135,84), .25);
+    }
+    #swagger-ui .swagger-ui .opblock.opblock-get .opblock-summary-method {
+        background: var(--bs-success, #198754);
+        border-radius: 0.35rem;
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+
+    /* Section header */
+    #swagger-ui .swagger-ui .opblock-tag {
+        border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+        font-size: 1.15rem;
+        padding: 0.75rem 0;
+    }
+
+    /* Response section */
+    #swagger-ui .swagger-ui .responses-inner { padding: 0.75rem; }
+    #swagger-ui .swagger-ui table tbody tr td { padding: 0.5rem 0.75rem; }
+
+    /* Hide empty Links section */
+    #swagger-ui .swagger-ui .response-col_links { display: none; }
+
+    /* Authorize button */
+    #swagger-ui .swagger-ui .btn.authorize {
+        border-radius: 0.375rem;
+        font-size: 0.85rem;
+    }
+
+    /* Dark mode support */
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock-body,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock .opblock-section-header,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock-description-wrapper,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .response-col_description__inner,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .markdown p,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .parameter__name,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .parameter__type,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui table thead tr th,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui table tbody tr td,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .response-col_status,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock-tag,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock-summary-description,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock-summary-path {
+        color: var(--bs-body-color, #dee2e6);
+    }
+
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock .opblock-section-header {
+        background: rgba(255,255,255,.04);
+    }
+
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui .opblock.opblock-get {
+        background: rgba(25,135,84,.1);
+        border-color: rgba(25,135,84,.3);
+    }
+
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui input[type=text],
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui textarea,
+    [data-bs-theme="dark"] #swagger-ui .swagger-ui select {
+        background: var(--bs-body-bg, #212529);
+        color: var(--bs-body-color, #dee2e6);
+        border-color: var(--bs-border-color, #495057);
+    }
+</style>
+
+@code {
+    private IJSObjectReference? _module;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hasCookie = HttpContextAccessor.HttpContext?.Request.Cookies.ContainsKey("meducateapi_auth") ?? false;
+        if (!hasCookie)
+        {
+            Nav.NavigateTo("/register", replace: true);
+            return;
+        }
+
+        var status = await Api.GetUserStatusAsync();
+        if (status is null)
+        {
+            Nav.NavigateTo("/register", replace: true);
+            return;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import",
+                "./Components/Pages/Docs.razor.js");
+            await _module.InvokeVoidAsync("init");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.DisposeAsync();
+        }
+    }
+}

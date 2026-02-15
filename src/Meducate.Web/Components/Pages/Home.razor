@@ -1,0 +1,164 @@
+@page "/"
+@rendermode InteractiveServer
+@inject Meducate.Web.Services.ApiService Api
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+
+@using Meducate.Web.Models
+
+<PageTitle>Meducate API</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <h1 class="fw-bold mb-3">Meducate API</h1>
+
+            <p class="lead">Meducate API provides structured, consistent, and up-to-date educational medical information through a simple, developer-friendly API.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">How the platform works</h4>
+
+            <ol class="mt-3">
+                <li>
+                    <strong>Create an account</strong><br />
+                    Register with your email address to verify your identity.
+                </li>
+
+                <li class="mt-2">
+                    <strong>Create an organisation</strong><br />
+                    Each account creates an organisation that represents your application or service.
+                </li>
+
+                <li class="mt-2">
+                    <strong>Generate an API key</strong><br />
+                    Your organisation is issued an API key to authenticate requests.
+                </li>
+
+                <li class="mt-2">
+                    <strong>Make API requests</strong><br />
+                    Query Meducate endpoints using your API key.
+                </li>
+            </ol>
+
+            <a href="/register?mode=create" class="btn btn-outline-primary mt-3">Get started</a>
+
+            <hr>
+
+            <h4 class="fw-semibold">What Meducate API does</h4>
+
+            <p>Meducate aggregates medical reference data from external providers and processes it using large language models (LLMs). Health topics are classified by type (e.g. Disease, Drug, Procedure) and categorized using <strong>ICD-10 standardized categories</strong> for consistent medical classification.</p>
+
+            <p>All topics are structured into predictable formats that can be reliably consumed by applications, with categories aligned to industry-standard ICD-10 chapters (Respiratory System, Circulatory System, Mental & Behavioral, etc.).</p>
+
+            <p>To ensure information remains current, all source data is reprocessed and summarised <strong>daily</strong> using automated background jobs.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Medical classification standard</h4>
+
+            <p>Meducate uses <strong>ICD-10 based categorization</strong> to ensure consistent, industry-standard medical classification. Every health topic is automatically classified into one of 24 standardized categories aligned with ICD-10 chapters:</p>
+
+            <ul class="mt-3">
+                <li>Body system categories (Respiratory, Circulatory, Nervous, Digestive, etc.)</li>
+                <li>Condition categories (Infectious & Parasitic Diseases, Neoplasms, Mental & Behavioral)</li>
+                <li>Treatment categories (Drugs & Medications, Medical Procedures, Diagnostic & Laboratory)</li>
+                <li>Wellness categories (Health & Wellness, Nutrition & Dietary, Preventive Care)</li>
+            </ul>
+
+            <p>This standardization enables reliable filtering, grouping, and integration with existing healthcare systems and workflows.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Our data sources</h4>
+
+            <p>Meducate draws from established, trusted medical sources to build its dataset. We believe in full transparency about where our information comes from and how it is used.</p>
+
+            <div class="mt-3">
+                <h6 class="fw-semibold">Primary source</h6>
+                <p>All health topics in our database originate from the following authoritative source:</p>
+                <ul>
+                    <li>
+                        <strong>MedlinePlus</strong> &mdash; a comprehensive health information service from the U.S. National Library of Medicine, covering over 2,000 health topics with daily updates.
+                    </li>
+                </ul>
+                <p>A health topic will only appear in Meducate if it is listed on MedlinePlus. If a topic is removed from MedlinePlus, it is automatically removed from Meducate.</p>
+
+                <h6 class="fw-semibold mt-3">Supplementary source</h6>
+                <ul>
+                    <li>
+                        <strong>PubMed</strong> &mdash; peer-reviewed biomedical literature from the U.S. National Library of Medicine. PubMed is used to supplement and enrich existing health topics with additional research context, but does not determine which topics are included.
+                    </li>
+                </ul>
+            </div>
+
+            <hr>
+
+            <h4 class="fw-semibold">How data is processed</h4>
+
+            <p>Raw source material from each provider is processed by large language models (LLMs) to produce structured, consistent summaries. This means the information you receive through the API is not a direct copy of any single source, but a normalised synthesis across all available providers for each health topic.</p>
+
+            <p>We recommend that users always refer to the original sources for clinical decision-making. Meducate is designed for educational and informational use.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Data freshness</h4>
+
+            <p>Meducate uses scheduled background processing to regularly ingest, summarise, and structure external medical data.</p>
+
+            <ul class="mt-3">
+                <li>New health topics are discovered and classified automatically as providers publish them</li>
+                <li>Source data is refreshed and summarised <strong>once per day</strong></li>
+                <li>Summaries are regenerated to reflect the most recent available information</li>
+                <li>Topics removed by all providers are automatically retired</li>
+                <li>API responses always serve the latest processed dataset</li>
+            </ul>
+
+            <hr>
+
+            <h4 class="fw-semibold">Authentication</h4>
+
+            <p>All API requests must include your organisation’s API key using the <code>X-Api-Key</code> request header.</p>
+
+            <pre class="bg-light p-3 rounded mt-3">X-Api-Key: YOUR_API_KEY</pre>
+            <p class="text-muted mt-2">Keep your API key secure. Do not expose it in client-side or public applications.</p>
+
+            <hr>
+
+            <h4 class="fw-semibold">Usage limits</h4>
+
+            <p>To ensure fair use and platform stability, API usage is rate limited.</p>
+
+            <ul class="mt-3">
+                <li><strong>1,000 requests per day</strong> per organisation</li>
+                <li>Usage resets every 24 hours</li>
+                <li>Requests exceeding the limit will be rejected</li>
+            </ul>
+
+            <hr>
+
+            <h4 class="fw-semibold">Get started</h4>
+
+            <p>Begin by creating an account. Once registered, you’ll be guided through organisation setup and API key creation.</p>
+
+            <a href="/register?mode=create" class="btn btn-primary btn-lg mt-2 mb-4">Create Account</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var hasCookie = HttpContextAccessor.HttpContext?.Request.Cookies.ContainsKey("meducateapi_auth") ?? false;
+        if (!hasCookie)
+            return;
+
+        var status = await Api.GetUserStatusAsync();
+
+        if (status is not null && status.HasApiKeys)
+        {
+            Nav.NavigateTo("/dashboard", replace: true);
+        }
+    }
+}

@@ -1,0 +1,57 @@
+﻿@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    var theme = HttpContextAccessor.HttpContext?.Request.Cookies["theme"] ?? "light";
+}
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="@theme">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <script>
+        (function() {
+            var match = document.cookie.match(/(?:^|;\s*)theme=(\w+)/);
+            if (match) document.documentElement.setAttribute('data-bs-theme', match[1]);
+        })();
+
+        window.getTheme = function() {
+            return document.documentElement.getAttribute('data-bs-theme') || 'light';
+        };
+
+        window.toggleTheme = function() {
+            var current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-bs-theme', next);
+            document.cookie = 'theme=' + next + ';path=/;max-age=31536000;Secure;SameSite=Strict';
+            return next;
+        };
+    </script>
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["Meducate.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta property="og:title" content="Meducate API" />
+    <meta property="og:description" content="A medical education API that transforms raw health data into structured, searchable knowledge." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://meducateapi.com" />
+    <meta property="og:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:title" content="Meducate API" />
+    <meta name="twitter:description" content="A medical education API that transforms raw health data into structured, searchable knowledge." />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <ReconnectModal />
+    <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
