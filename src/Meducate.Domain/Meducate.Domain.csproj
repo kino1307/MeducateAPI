@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<InternalsVisibleTo Include="Meducate.Application" />
+		<InternalsVisibleTo Include="Meducate.Infrastructure" />
+		<InternalsVisibleTo Include="Meducate.API" />
+		<InternalsVisibleTo Include="Meducate.Tests" />
+	</ItemGroup>
+</Project>
