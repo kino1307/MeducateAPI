@@ -21,8 +21,6 @@ internal sealed class HealthTopic
 
     public List<string>? Citations { get; set; }
 
-    public List<string>? DifferentialDiagnoses { get; set; }
-
     [JsonIgnore]
     public string? RawSource { get; set; }
 

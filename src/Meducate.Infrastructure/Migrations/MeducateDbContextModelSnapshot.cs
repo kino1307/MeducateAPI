@@ -122,9 +122,6 @@ namespace Meducate.Infrastructure.Migrations
                     b.PrimitiveCollection<string>("Citations")
                         .HasColumnType("jsonb");
 
-                    b.PrimitiveCollection<string>("DifferentialDiagnoses")
-                        .HasColumnType("jsonb");
-
                     b.PrimitiveCollection<string>("Factors")
                         .HasColumnType("jsonb");
 

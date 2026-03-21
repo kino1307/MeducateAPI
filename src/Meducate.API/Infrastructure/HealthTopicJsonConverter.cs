@@ -37,7 +37,6 @@ internal sealed class HealthTopicJsonConverter : JsonConverter<HealthTopic>
             Factors = ReadStringList(root, "factors") ?? ReadStringList(root, "causes"),
             Actions = ReadStringList(root, "actions") ?? ReadStringList(root, "treatments"),
             Citations = ReadStringList(root, "citations"),
-            DifferentialDiagnoses = ReadStringList(root, "differentialDiagnoses"),
             Category = root.TryGetProperty("category", out var cat) ? cat.GetString() : null,
             TopicType = root.TryGetProperty("topicType", out var tt) ? tt.GetString() : null,
             Tags = ReadStringList(root, "tags"),
@@ -63,7 +62,6 @@ internal sealed class HealthTopicJsonConverter : JsonConverter<HealthTopic>
         WriteStringList(writer, factorsKey, value.Factors);
         WriteStringList(writer, actionsKey, value.Actions);
         WriteStringList(writer, "citations", value.Citations);
-        WriteStringList(writer, "differentialDiagnoses", value.DifferentialDiagnoses);
         WriteStringList(writer, "tags", value.Tags);
 
         writer.WriteString("lastUpdated", value.LastUpdated);

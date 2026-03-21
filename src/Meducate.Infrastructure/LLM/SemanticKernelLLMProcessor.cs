@@ -35,10 +35,9 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             information from your training data or general medical knowledge that is not
             present in the source text.
 
-            You may use your medical knowledge to interpret and classify the topic type
-            and to rank differential diagnoses by clinical likelihood, but all other
-            extracted content (summary, observations, factors, actions) must be traceable
-            to specific statements in the source text.
+            You may use your medical knowledge to interpret and classify the topic type,
+            but all extracted content (summary, observations, factors, actions) must be
+            traceable to specific statements in the source text.
 
             The source may contain multiple providers separated by --- with [SourceName]
             headers. Synthesise all sources into one cohesive entry. If sources conflict,
@@ -73,11 +72,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             - "citations": include ONLY if explicitly named in the text (e.g. "NICE
               Guideline NG28", "WHO"). Never fabricate or guess citation names.
               Return [] if none are explicitly named.
-            - "differentialDiagnoses": up to 5 conditions that present similarly,
-              ranked by clinical likelihood (most likely first). Use established
-              medical knowledge for selection and ranking. Only include for
-              Disease, Disorder, Syndrome, Symptom, or Mental Health topics.
-              Return [] for non-clinical types or if not applicable.
             - DO NOT include a "category" field - categories are assigned separately
               using standardized medical classification
             - "tags": up to 8 terms drawn directly from the source text for search
@@ -96,7 +90,7 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             Return raw JSON only, no code fences, no explanation.
 
             Schema:
-            {"name":"","summary":"","observations":[],"factors":[],"actions":[],"citations":[],"differentialDiagnoses":[],"tags":[]}
+            {"name":"","summary":"","observations":[],"factors":[],"actions":[],"citations":[],"tags":[]}
 
             SOURCE TEXT:
             {{$rawText}}
@@ -315,7 +309,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
         public List<string>? Actions { get; init; }
         public List<string>? Citations { get; init; }
         public List<string>? Tags { get; init; }
-        public List<string>? DifferentialDiagnoses { get; init; }
     }
 
     private static string GetTypeInstructions(string? topicType)
@@ -328,7 +321,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list uses and indications mentioned in the text
                 - "observations": list side effects and adverse reactions mentioned in the text
                 - "factors": list contraindications and warnings mentioned in the text
-                - "differentialDiagnoses": [] (not applicable for drugs)
                 Only include items explicitly stated in the source. Return [] for any
                 field not covered by the text.
                 """,
@@ -338,7 +330,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list what conditions it treats or tests for, as stated in the text
                 - "observations": list risks or complications if mentioned in the text, otherwise []
                 - "factors": list reasons the procedure is needed if stated in the text, otherwise []
-                - "differentialDiagnoses": [] (not applicable for procedures/tests)
                 Only include items explicitly stated in the source.
                 """,
             "Symptom" =>
@@ -347,7 +338,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "factors": list conditions or factors that cause this symptom, as stated in the text
                 - "actions": list management strategies and remedies mentioned in the text
                 - "observations": list associated or related symptoms if mentioned in the text, otherwise []
-                - "differentialDiagnoses": up to 5 conditions that commonly present with this symptom, ranked by clinical likelihood
                 Only include items explicitly stated in the source.
                 """,
             "Vaccine" =>
@@ -356,7 +346,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list diseases it prevents, as stated in the text
                 - "observations": list side effects if mentioned in the text, otherwise []
                 - "factors": list contraindications or who should not receive it, as stated in the text
-                - "differentialDiagnoses": [] (not applicable for vaccines)
                 Only include items explicitly stated in the source.
                 """,
             "Anatomy" =>
@@ -365,7 +354,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list treatments mentioned in the text, otherwise []
                 - "observations": list conditions or problems mentioned in the text for this body part/system
                 - "factors": list risk factors if mentioned in the text, otherwise []
-                - "differentialDiagnoses": [] (not applicable for anatomy)
                 Only include items explicitly stated in the source.
                 """,
             "Nutrient" =>
@@ -374,7 +362,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list health benefits and medical uses mentioned in the text
                 - "observations": list deficiency symptoms or signs of excess mentioned in the text
                 - "factors": list dietary sources and factors affecting levels mentioned in the text
-                - "differentialDiagnoses": [] (not applicable for nutrients)
                 Only include items explicitly stated in the source.
                 """,
             "Mental Health" =>
@@ -383,7 +370,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list therapies, interventions, and management strategies mentioned in the text
                 - "observations": list psychological and behavioural symptoms mentioned in the text
                 - "factors": list risk factors and contributing causes mentioned in the text
-                - "differentialDiagnoses": up to 5 conditions that present similarly, ranked by clinical likelihood
                 Only include items explicitly stated in the source.
                 """,
             "Lifestyle" =>
@@ -392,7 +378,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list recommendations and strategies mentioned in the text
                 - "observations": list health issues or risks discussed in the text
                 - "factors": list contributing factors mentioned in the text
-                - "differentialDiagnoses": [] (not applicable for lifestyle topics)
                 Only include items explicitly stated in the source.
                 """,
             _ =>
@@ -401,7 +386,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "observations": signs and symptoms mentioned in the text
                 - "factors": causes and risk factors mentioned in the text
                 - "actions": treatments and management strategies mentioned in the text
-                - "differentialDiagnoses": up to 5 conditions that present similarly, ranked by clinical likelihood
                 Only include items explicitly stated in the source. Return [] for any
                 field not covered by the text.
                 """
@@ -519,7 +503,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             Citations = model.Citations ?? [],
             Category = null,
             Tags = NormalizeList(model.Tags ?? [], s => s.ToLowerInvariant()),
-            DifferentialDiagnoses = NormalizeList(model.DifferentialDiagnoses ?? [], ToSentenceCase),
             RawSource = rawText,
             LastUpdated = DateTime.UtcNow,
             Version = 1

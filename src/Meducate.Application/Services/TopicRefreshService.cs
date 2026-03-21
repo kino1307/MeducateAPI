@@ -229,7 +229,6 @@ internal sealed class TopicRefreshService(
                 topic.Factors = structured.Factors;
                 topic.Actions = structured.Actions;
                 topic.Citations = structured.Citations;
-                topic.DifferentialDiagnoses = structured.DifferentialDiagnoses;
                 // Preserve existing Category — ParseHealthTopicAsync always returns null
                 // for Category; it gets classified separately in Phase 3
                 if (structured.Category is not null)

@@ -18,7 +18,6 @@ internal sealed class HealthTopicConfiguration : IEntityTypeConfiguration<Health
         builder.Property(t => t.Actions).HasColumnType("jsonb");
         builder.Property(t => t.Citations).HasColumnType("jsonb");
         builder.Property(t => t.Tags).HasColumnType("jsonb");
-        builder.Property(t => t.DifferentialDiagnoses).HasColumnType("jsonb");
 
         builder.HasIndex(t => t.Name).IsUnique();
         builder.HasIndex(t => t.OriginalName);

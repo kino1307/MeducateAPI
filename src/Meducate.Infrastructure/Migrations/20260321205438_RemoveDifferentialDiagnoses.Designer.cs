@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Meducate.Infrastructure.Persistence.Migrations
+namespace Meducate.Infrastructure.Migrations
 {
     [DbContext(typeof(MeducateDbContext))]
-    [Migration("20260317143347_AddDifferentialDiagnoses")]
-    partial class AddDifferentialDiagnoses
+    [Migration("20260321205438_RemoveDifferentialDiagnoses")]
+    partial class RemoveDifferentialDiagnoses
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -123,9 +123,6 @@ namespace Meducate.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.PrimitiveCollection<string>("Citations")
-                        .HasColumnType("jsonb");
-
-                    b.PrimitiveCollection<string>("DifferentialDiagnoses")
                         .HasColumnType("jsonb");
 
                     b.PrimitiveCollection<string>("Factors")
