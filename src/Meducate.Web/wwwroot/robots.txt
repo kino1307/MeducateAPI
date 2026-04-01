@@ -4,6 +4,7 @@ Disallow: /dashboard
 Disallow: /account
 Disallow: /api-key
 Disallow: /create-organisation
+Disallow: /verify
 Disallow: /auth/
 Disallow: /api-docs/
 Disallow: /swagger

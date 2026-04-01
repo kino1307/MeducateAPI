@@ -10,9 +10,18 @@ namespace Meducate.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "DifferentialDiagnoses",
-                table: "HealthTopics");
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'HealthTopics' AND column_name = 'DifferentialDiagnoses'
+                    ) THEN
+                        ALTER TABLE "HealthTopics" DROP COLUMN "DifferentialDiagnoses";
+                    END IF;
+                END $$;
+                """);
 
             migrationBuilder.Sql(
                 "DELETE FROM \"__EFMigrationsHistory\" WHERE \"MigrationId\" = '20260317143347_AddDifferentialDiagnoses';");
