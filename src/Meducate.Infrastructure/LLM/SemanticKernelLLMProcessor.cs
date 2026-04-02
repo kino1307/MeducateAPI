@@ -31,13 +31,12 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
     private readonly KernelFunction _extractFunction = kernel.CreateFunctionFromPrompt(
             """
             You are a data extraction system for a comprehensive health knowledge base.
-            Extract information ONLY from the source text provided below. Do not add
-            information from your training data or general medical knowledge that is not
-            present in the source text.
+            Extract information primarily from the source text provided below.
 
-            You may use your medical knowledge to interpret and classify the topic type,
-            but all extracted content (summary, observations, factors, actions) must be
-            traceable to specific statements in the source text.
+            You may use your medical knowledge to interpret and classify the topic type.
+            For structured fields (observations, factors, actions), prefer items traceable
+            to the source text but see FALLBACK FOR SPARSE SOURCES below when the source
+            is descriptive prose without discrete lists.
 
             The source may contain multiple providers separated by --- with [SourceName]
             headers. Synthesise all sources into one cohesive entry. If sources conflict,
@@ -52,9 +51,9 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             {{$nameInstruction}}
 
             Step 2: For each field below, find the specific statements in the source
-            text that support it. If no statements exist for a field, that field MUST
-            be empty ([] for arrays, null for strings). Do not infer, guess, or fill
-            in from general medical knowledge.
+            text that support it. Prefer extracting from explicit statements, but see
+            FALLBACK FOR SPARSE SOURCES below if the text is descriptive prose without
+            discrete lists.
 
             Step 3: Write the summary by paraphrasing ONLY what the source text states.
             Do not add context, background, or elaboration beyond what is written.
@@ -66,9 +65,10 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
               fine if the source is sparse. Never pad, elaborate, or add background not
               present in the text. Never truncate or end with "..."
             - "observations", "factors", "actions": interpret per the type instructions
-              above. Use concise phrasing (not full sentences). Each item MUST be
-              traceable to a specific statement in the source text. If the text does not
-              cover a field, return an empty array [].
+              above. Use concise phrasing (not full sentences). Prefer items traceable
+              to specific statements in the source text, but apply the FALLBACK FOR
+              SPARSE SOURCES rule below when the source is descriptive prose. Only
+              return [] if the source provides no relevant context at all for a field.
             - "citations": include ONLY if explicitly named in the text (e.g. "NICE
               Guideline NG28", "WHO"). Never fabricate or guess citation names.
               Return [] if none are explicitly named.
@@ -79,8 +79,20 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
               word/phrase in the source. Return [] if the source is too sparse.
             - All output in English. Translate if source is not English.
 
+            FALLBACK FOR SPARSE SOURCES:
+            If the source text clearly describes a medical topic but does not explicitly list
+            individual symptoms, causes, risk factors, or treatments as discrete items:
+            - You MAY extract structured items by breaking down descriptive prose into individual
+              entries. For example, if the source says "it can be caused by infections, allergies,
+              or environmental factors", extract ["Infections", "Allergies", "Environmental factors"].
+            - You MAY include well-established medical facts that are directly implied by the source
+              context (e.g., if the source discusses "treatment includes rest and medication", you
+              can extract ["Rest", "Medication"]).
+            - You MUST NOT add speculative, rare, or controversial items not supported by the source.
+            - Each structured field should have at least 2-3 entries when the source provides
+              enough context, even if those entries require light interpretation of prose text.
+
             DO NOT:
-            - Add observations, factors, actions, or any list items not stated in the text
             - Invent or guess citations — if the text doesn't name a specific guideline
               or study, return []
             - Pad the summary with general medical knowledge to make it longer
@@ -234,6 +246,15 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             - Type "Lifestyle" → MUST go to "Health & Wellness"
             - Type "Mental Health" → MUST go to "Mental & Behavioral"
 
+            DISAMBIGUATION RULES:
+            - "Rare Disease" or meta-topics about disease categories → "Symptoms & Signs" (general, not body-system specific)
+            - Drowning, Choking, Burns, Frostbite, Poisoning, Inhalation Injuries → "Injury & Poisoning"
+            - Occupational health topics → "External Causes & Factors"
+            - Topics about babies/infants/newborns with congenital issues → "Perinatal & Congenital"
+            - Topics about babies/infants/newborns with general health → "Symptoms & Signs"
+            - "Chronic Illness" or general coping topics → "Health & Wellness" (not "Mental & Behavioral" unless explicitly psychiatric)
+            - VLDL Cholesterol, cholesterol topics → "Endocrine, Nutritional & Metabolic"
+
             Return ONLY a raw JSON object mapping each topic name to its category.
             No explanation, no code fences.
 
@@ -321,8 +342,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list uses and indications mentioned in the text
                 - "observations": list side effects and adverse reactions mentioned in the text
                 - "factors": list contraindications and warnings mentioned in the text
-                Only include items explicitly stated in the source. Return [] for any
-                field not covered by the text.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Procedure" or "Diagnostic Test" =>
                 $"""
@@ -330,7 +351,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list what conditions it treats or tests for, as stated in the text
                 - "observations": list risks or complications if mentioned in the text, otherwise []
                 - "factors": list reasons the procedure is needed if stated in the text, otherwise []
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Symptom" =>
                 """
@@ -338,7 +360,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "factors": list conditions or factors that cause this symptom, as stated in the text
                 - "actions": list management strategies and remedies mentioned in the text
                 - "observations": list associated or related symptoms if mentioned in the text, otherwise []
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Vaccine" =>
                 """
@@ -346,7 +369,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list diseases it prevents, as stated in the text
                 - "observations": list side effects if mentioned in the text, otherwise []
                 - "factors": list contraindications or who should not receive it, as stated in the text
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Anatomy" =>
                 """
@@ -354,7 +378,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list treatments mentioned in the text, otherwise []
                 - "observations": list conditions or problems mentioned in the text for this body part/system
                 - "factors": list risk factors if mentioned in the text, otherwise []
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Nutrient" =>
                 """
@@ -362,7 +387,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list health benefits and medical uses mentioned in the text
                 - "observations": list deficiency symptoms or signs of excess mentioned in the text
                 - "factors": list dietary sources and factors affecting levels mentioned in the text
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Mental Health" =>
                 """
@@ -370,7 +396,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list therapies, interventions, and management strategies mentioned in the text
                 - "observations": list psychological and behavioural symptoms mentioned in the text
                 - "factors": list risk factors and contributing causes mentioned in the text
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             "Lifestyle" =>
                 """
@@ -378,7 +405,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "actions": list recommendations and strategies mentioned in the text
                 - "observations": list health issues or risks discussed in the text
                 - "factors": list contributing factors mentioned in the text
-                Only include items explicitly stated in the source.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """,
             _ =>
                 """
@@ -386,8 +414,8 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 - "observations": signs and symptoms mentioned in the text
                 - "factors": causes and risk factors mentioned in the text
                 - "actions": treatments and management strategies mentioned in the text
-                Only include items explicitly stated in the source. Return [] for any
-                field not covered by the text.
+                Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
+                if the text is descriptive prose without discrete lists.
                 """
         };
     }

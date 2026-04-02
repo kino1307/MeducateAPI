@@ -340,17 +340,24 @@ internal sealed class TopicIngestionService(
         // 9. Backfill TopicType for any existing records that don't have one
         var backfilledCount = await _backfillService.BackfillTopicTypesAsync(ct, console);
 
-        // 10. Backfill categories for topics missing them
+        // 10. Flag topics with empty structured fields for reprocessing
+        var emptyFieldsCount = await _backfillService.BackfillEmptyStructuredFieldsAsync(ct, console);
+
+        // 11. Clear bad categories so they get recategorized
+        var badCategoriesCount = await _backfillService.BackfillBadCategoriesAsync(ct, console);
+
+        // 12. Backfill categories for topics missing them (including ones just cleared above)
         var categorizedCount = await _backfillService.BackfillCategoriesAsync(ct, console);
 
-        if (addedCount > 0 || removedCount > 0 || backfilledCount > 0 || categorizedCount > 0 || backfilledOriginalNames > 0)
+        if (addedCount > 0 || removedCount > 0 || backfilledCount > 0 || categorizedCount > 0
+            || backfilledOriginalNames > 0 || emptyFieldsCount > 0 || badCategoriesCount > 0)
             _topicRepo.InvalidateCache();
 
         if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("Medical data ingestion complete — added {Added}, removed {Removed}, backfilled types {Backfilled}, backfilled originals {BackfilledOriginals}, categorized {Categorized}",
-                addedCount, removedCount, backfilledCount, backfilledOriginalNames, categorizedCount);
+            _logger.LogInformation("Medical data ingestion complete — added {Added}, removed {Removed}, backfilled types {Backfilled}, backfilled originals {BackfilledOriginals}, categorized {Categorized}, flagged empty {EmptyFields}, cleared bad categories {BadCategories}",
+                addedCount, removedCount, backfilledCount, backfilledOriginalNames, categorizedCount, emptyFieldsCount, badCategoriesCount);
 
-        console?.WriteLine($"Discovery complete — added {addedCount}, removed {removedCount}, backfilled {backfilledCount} types, {backfilledOriginalNames} original names, categorized {categorizedCount}.");
+        console?.WriteLine($"Discovery complete — added {addedCount}, removed {removedCount}, backfilled {backfilledCount} types, {backfilledOriginalNames} original names, categorized {categorizedCount}, flagged {emptyFieldsCount} empty, cleared {badCategoriesCount} bad categories.");
     }
 
     private async Task<IReadOnlyList<RawTopicData>> DiscoverSafeAsync(

@@ -14,4 +14,5 @@ internal interface ITopicQueryRepository
     Task<List<HealthTopic>> GetTopicsWithoutOriginalNameAsync(CancellationToken ct);
     Task<Dictionary<string, string>> GetOriginalNameMappingsAsync(CancellationToken ct);
     Task<HashSet<string>> GetAllSeenTopicNamesAsync(CancellationToken ct);
+    Task<List<HealthTopic>> GetTopicsWithEmptyStructuredFieldsAsync(CancellationToken ct);
 }

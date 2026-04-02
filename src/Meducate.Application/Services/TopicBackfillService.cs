@@ -167,6 +167,111 @@ internal sealed class TopicBackfillService(
         }
     }
 
+    internal async Task<int> BackfillEmptyStructuredFieldsAsync(CancellationToken ct, PerformContext? console = null)
+    {
+        var topics = await _queryRepo.GetTopicsWithEmptyStructuredFieldsAsync(ct);
+
+        if (topics.Count == 0)
+            return 0;
+
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("Flagging {Count} topics with empty structured fields for reprocessing", topics.Count);
+
+        console?.WriteLine($"Flagging {topics.Count} topics with empty structured fields for reprocessing...");
+
+        try
+        {
+            foreach (var topic in topics)
+            {
+                topic.NeedsLlmReprocessing = true;
+                // Touch LastSourceRefresh so GetTopicsNeedingReprocessingAsync (2-day cutoff) picks these up
+                topic.LastSourceRefresh = DateTime.UtcNow;
+            }
+
+            await _writeRepo.SaveChangesAsync(ct);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Flagged {Count} empty-field topics for reprocessing", topics.Count);
+
+            console?.WriteLine($"Flagged {topics.Count} topics for reprocessing.");
+
+            return topics.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to flag empty-field topics — will retry next run");
+            console?.WriteLine($"Empty-field backfill failed: {ex.Message}");
+
+            _writeRepo.RevertChanges(topics);
+
+            return 0;
+        }
+    }
+
+    // Topic names with known-wrong categories and their correct assignments.
+    // Only corrects if the current category does NOT match the expected one,
+    // so this is idempotent and won't re-trigger on subsequent runs.
+    private static readonly Dictionary<string, string> CategoryCorrections = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Rare Disease", "Symptoms & Signs" },
+        { "Rare Diseases", "Symptoms & Signs" },
+        { "Drowning", "Injury & Poisoning" },
+        { "Choking", "Injury & Poisoning" },
+        { "Burns", "Injury & Poisoning" },
+        { "Frostbite", "Injury & Poisoning" },
+        { "Chronic Illness", "Health & Wellness" },
+        { "VLDL Cholesterol", "Endocrine, Nutritional & Metabolic" },
+    };
+
+    internal async Task<int> BackfillBadCategoriesAsync(CancellationToken ct, PerformContext? console = null)
+    {
+        var corrected = new List<HealthTopic>();
+
+        foreach (var (name, correctCategory) in CategoryCorrections)
+        {
+            var topic = await _queryRepo.GetByNameTrackedAsync(name, ct);
+            if (topic is null)
+                continue;
+
+            // Skip if already correct (or already null — will be picked up by BackfillCategoriesAsync)
+            if (topic.Category is null || string.Equals(topic.Category, correctCategory, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Correcting category for '{Name}': '{Old}' → '{New}'",
+                    topic.Name, topic.Category, correctCategory);
+
+            console?.WriteLine($"  [{topic.Name}] {topic.Category} → {correctCategory}");
+
+            topic.Category = correctCategory;
+            corrected.Add(topic);
+        }
+
+        if (corrected.Count == 0)
+            return 0;
+
+        try
+        {
+            await _writeRepo.SaveChangesAsync(ct);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Corrected categories on {Count} topics", corrected.Count);
+
+            console?.WriteLine($"Corrected {corrected.Count} miscategorized topics.");
+
+            return corrected.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to correct bad categories — will retry next run");
+            console?.WriteLine($"Bad category correction failed: {ex.Message}");
+
+            _writeRepo.RevertChanges(corrected);
+
+            return 0;
+        }
+    }
+
     internal async Task<int> BackfillCategoriesAsync(CancellationToken ct, PerformContext? console = null)
     {
         var uncategorized = await _queryRepo.GetUncategorizedTopicsAsync(ct);
