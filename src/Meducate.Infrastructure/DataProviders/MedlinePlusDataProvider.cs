@@ -14,7 +14,13 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
     private List<ParsedTopic>? _cachedTopics;
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
-    private sealed record ParsedTopic(string Title, string Summary, List<string> Groups);
+    // Cap full page content — well below TopicHelpers.MaxCharsPerSource so merged sources still fit
+    private const int MaxFullPageChars = 12_000;
+
+    // Throttle between full-page fetches to avoid rate-limiting MedlinePlus
+    private static readonly TimeSpan PageFetchDelay = TimeSpan.FromMilliseconds(300);
+
+    private sealed record ParsedTopic(string Title, string Summary, List<string> Groups, string? Url, string? PrimaryInstitute);
 
     public string SourceName => "MedlinePlus";
 
@@ -29,7 +35,10 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             if (match is null)
                 return null;
 
-            return new RawTopicData(topicName, match.Summary, SourceName, match.Groups, ContentHasher.ComputeHash(match.Summary));
+            var fullPageText = await FetchFullPageTextAsync(match.Url, ct);
+            var rawText = BuildRawText(match, fullPageText);
+
+            return new RawTopicData(topicName, rawText, SourceName, match.Groups, ContentHasher.ComputeHash(rawText));
         }
         catch (Exception ex)
         {
@@ -83,7 +92,6 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         await _cacheLock.WaitAsync(ct);
         try
         {
-            // Double-check after acquiring lock
             if (_cachedTopics is not null)
                 return _cachedTopics;
 
@@ -127,12 +135,53 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
                 .Where(g => !string.IsNullOrWhiteSpace(g))
                 .ToList();
 
-            topics.Add(new ParsedTopic(title, cleanSummary, groups));
+            var url = topic.Attribute("url")?.Value?.Trim();
+            var primaryInstitute = topic.Element("primary-institute")?.Value?.Trim();
+
+            topics.Add(new ParsedTopic(title, cleanSummary, groups, url, primaryInstitute));
         }
 
         _logger.LogInformation("MedlinePlus: parsed {Count} health topics from XML", topics.Count);
         _cachedTopics = topics;
         return topics;
+    }
+
+    private async Task<string?> FetchFullPageTextAsync(string? url, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return null;
+
+        try
+        {
+            await Task.Delay(PageFetchDelay, ct);
+            var html = await _httpClient.GetStringAsync(url, ct);
+            var text = StripHtmlTags(html);
+
+            if (text.Length > MaxFullPageChars)
+            {
+                var cutoff = text.LastIndexOf(' ', MaxFullPageChars);
+                text = cutoff > 0 ? text[..cutoff] : text[..MaxFullPageChars];
+            }
+
+            return text;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "MedlinePlus: failed to fetch full page {Url}", url);
+            return null;
+        }
+    }
+
+    private static string BuildRawText(ParsedTopic topic, string? fullPageText)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(topic.PrimaryInstitute))
+            parts.Add($"[Source: {topic.PrimaryInstitute}]");
+
+        parts.Add(!string.IsNullOrWhiteSpace(fullPageText) ? fullPageText : topic.Summary);
+
+        return string.Join("\n\n", parts);
     }
 
     private async Task<string> ResolveXmlUrlAsync(CancellationToken ct)
@@ -143,7 +192,6 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         if (match.Success)
             return match.Value;
 
-        // Fallback: try today's date directly
         var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
         _logger.LogWarning("MedlinePlus: could not find XML URL on download page, falling back to today's date");
         return $"xml/mplus_topics_{today}.xml";
