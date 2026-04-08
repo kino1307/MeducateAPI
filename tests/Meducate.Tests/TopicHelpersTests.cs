@@ -54,7 +54,7 @@ public class TopicHelpersTests
     }
 
     [Fact]
-    public void CheckTopicQuality_ReturnsError_WhenAllArraysEmpty()
+    public void CheckTopicQuality_ReturnsNoContent_WhenEmpty()
     {
         var topic = new HealthTopic
         {
@@ -65,14 +65,11 @@ public class TopicHelpersTests
         var result = TopicHelpers.CheckTopicQuality(topic);
 
         Assert.NotNull(result);
-        Assert.Contains("empty structured fields", result);
-        Assert.Contains("observations", result);
-        Assert.Contains("factors", result);
-        Assert.Contains("actions", result);
+        Assert.Contains("no observations", result);
     }
 
     [Fact]
-    public void CheckTopicQuality_ReturnsError_WhenSomeArraysEmpty()
+    public void CheckTopicQuality_ReturnsNull_WhenPartiallyPopulated()
     {
         var topic = new HealthTopic
         {
@@ -81,13 +78,7 @@ public class TopicHelpersTests
             Observations = ["Increased thirst"]
         };
 
-        var result = TopicHelpers.CheckTopicQuality(topic);
-
-        Assert.NotNull(result);
-        Assert.Contains("empty structured fields", result);
-        Assert.Contains("factors", result);
-        Assert.Contains("actions", result);
-        Assert.DoesNotContain("observations", result);
+        Assert.Null(TopicHelpers.CheckTopicQuality(topic));
     }
 
     [Fact]
