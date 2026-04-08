@@ -25,6 +25,7 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
 
     private sealed record ParsedTopic(
         string Title,
+        List<string> AlsoCalled,
         string Summary,
         List<string> Groups,
         string? Url,
@@ -39,7 +40,8 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         {
             var topics = await GetOrLoadTopicsAsync(ct);
             var match = topics.FirstOrDefault(t =>
-                string.Equals(t.Title, topicName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(t.Title, topicName, StringComparison.OrdinalIgnoreCase)
+                || t.AlsoCalled.Any(a => string.Equals(a, topicName, StringComparison.OrdinalIgnoreCase)));
 
             if (match is null)
                 return null;
@@ -85,7 +87,9 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         try
         {
             var topics = await GetOrLoadTopicsAsync(ct);
-            return new HashSet<string>(topics.Select(t => t.Title), StringComparer.OrdinalIgnoreCase);
+            var names = topics.Select(t => t.Title)
+                .Concat(topics.SelectMany(t => t.AlsoCalled));
+            return new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
@@ -140,6 +144,11 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             if (cleanSummary.Length < 50)
                 continue;
 
+            var alsoCalled = topic.Elements("also-called")
+                .Select(a => a.Value?.Trim() ?? "")
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .ToList();
+
             var groups = topic.Elements("group")
                 .Select(g => g.Value?.Trim() ?? "")
                 .Where(g => !string.IsNullOrWhiteSpace(g))
@@ -148,16 +157,27 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             var url = topic.Attribute("url")?.Value?.Trim();
             var primaryInstitute = topic.Element("primary-institute")?.Value?.Trim();
 
-            // Collect encyclopedia article URLs from <site> elements — these have
-            // the richest structured medical content (symptoms, causes, treatments)
+            // Collect encyclopedia article URLs from <site> elements — sort by
+            // title relevance so the main condition article is preferred over
+            // related tests or procedures (which appear first alphabetically).
+            var titleWords = title.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => w.Length > 2)
+                .Select(w => w.ToLowerInvariant())
+                .ToHashSet();
+
             var encyclopediaUrls = topic.Elements("site")
-                .Select(s => s.Attribute("url")?.Value?.Trim() ?? "")
-                .Where(u => u.Contains("/ency/article/", StringComparison.OrdinalIgnoreCase))
+                .Select(s => (
+                    Url: s.Attribute("url")?.Value?.Trim() ?? "",
+                    SiteTitle: s.Attribute("title")?.Value?.Trim() ?? ""))
+                .Where(s => s.Url.Contains("/ency/article/", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(s => s.SiteTitle.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Count(w => titleWords.Contains(w.ToLowerInvariant().TrimEnd('.', ',', ';', ':'))))
+                .Select(s => s.Url)
                 .Distinct()
                 .Take(2)
                 .ToList();
 
-            topics.Add(new ParsedTopic(title, cleanSummary, groups, url, primaryInstitute, encyclopediaUrls));
+            topics.Add(new ParsedTopic(title, alsoCalled, cleanSummary, groups, url, primaryInstitute, encyclopediaUrls));
         }
 
         _logger.LogInformation("MedlinePlus: parsed {Count} health topics from XML", topics.Count);
