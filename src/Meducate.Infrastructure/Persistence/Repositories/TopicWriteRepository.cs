@@ -110,9 +110,9 @@ internal sealed class TopicWriteRepository(MeducateDbContext db) : ITopicWriteRe
     public async Task<List<HealthTopic>> GetTopicsWithEmptyStructuredFieldsAsync(CancellationToken ct) =>
         await _db.HealthTopics
             .Where(c => !c.NeedsLlmReprocessing
-                && (c.Observations == null || c.Observations.Count == 0)
-                && (c.Factors == null || c.Factors.Count == 0)
-                && (c.Actions == null || c.Actions.Count == 0))
+                && ((c.Observations == null || c.Observations.Count == 0)
+                || (c.Factors == null || c.Factors.Count == 0)
+                || (c.Actions == null || c.Actions.Count == 0)))
             .ToListAsync(ct);
 
 }
