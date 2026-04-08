@@ -69,6 +69,9 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
               to specific statements in the source text, but apply the FALLBACK FOR
               SPARSE SOURCES rule below when the source is descriptive prose. Only
               return [] if the source provides no relevant context at all for a field.
+            - "actions" must contain only interventions applied AFTER the condition is
+              present (treatments, management, self-care). Do NOT include general
+              prevention advice aimed at people who have not yet developed the condition.
             - "citations": include ONLY if explicitly named in the text (e.g. "NICE
               Guideline NG28", "WHO"). Never fabricate or guess citation names.
               Return [] if none are explicitly named.
@@ -411,9 +414,14 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             _ =>
                 """
                 Interpret fields with their standard medical meanings:
-                - "observations": signs and symptoms mentioned in the text
-                - "factors": causes and risk factors mentioned in the text
-                - "actions": treatments and management strategies mentioned in the text
+                - "observations": signs and symptoms mentioned in the text. Include
+                  physical effects, complications, and clinical findings.
+                - "factors": causes and risk factors mentioned in the text. If the
+                  source describes circumstances that lead to the condition (e.g.
+                  "attacks when threatened or sick"), extract those as causes.
+                - "actions": treatments and management strategies for those already
+                  affected — what to do once the condition has occurred (e.g. wound
+                  care, medication, medical attention). Exclude prevention tips.
                 Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
                 if the text is descriptive prose without discrete lists.
                 """
