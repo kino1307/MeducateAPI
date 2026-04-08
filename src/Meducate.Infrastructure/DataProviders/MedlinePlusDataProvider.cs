@@ -14,13 +14,22 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
     private List<ParsedTopic>? _cachedTopics;
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
-    // Cap full page content — well below TopicHelpers.MaxCharsPerSource so merged sources still fit
-    private const int MaxFullPageChars = 12_000;
+    // Portal page capped lower to leave room for the encyclopedia article
+    private const int MaxPortalPageChars = 4_000;
 
-    // Throttle between full-page fetches to avoid rate-limiting MedlinePlus
+    // Encyclopedia article gets the bulk of the budget
+    private const int MaxEncyclopediaChars = 10_000;
+
+    // Throttle between fetches to avoid rate-limiting MedlinePlus
     private static readonly TimeSpan PageFetchDelay = TimeSpan.FromMilliseconds(300);
 
-    private sealed record ParsedTopic(string Title, string Summary, List<string> Groups, string? Url, string? PrimaryInstitute);
+    private sealed record ParsedTopic(
+        string Title,
+        string Summary,
+        List<string> Groups,
+        string? Url,
+        string? PrimaryInstitute,
+        List<string> EncyclopediaUrls);
 
     public string SourceName => "MedlinePlus";
 
@@ -35,8 +44,9 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             if (match is null)
                 return null;
 
-            var fullPageText = await FetchFullPageTextAsync(match.Url, ct);
-            var rawText = BuildRawText(match, fullPageText);
+            var portalText = await FetchPageTextAsync(match.Url, MaxPortalPageChars, ct);
+            var encyclopediaText = await FetchFirstEncyclopediaArticleAsync(match.EncyclopediaUrls, ct);
+            var rawText = BuildRawText(match, portalText, encyclopediaText);
 
             return new RawTopicData(topicName, rawText, SourceName, match.Groups, ContentHasher.ComputeHash(rawText));
         }
@@ -138,7 +148,16 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             var url = topic.Attribute("url")?.Value?.Trim();
             var primaryInstitute = topic.Element("primary-institute")?.Value?.Trim();
 
-            topics.Add(new ParsedTopic(title, cleanSummary, groups, url, primaryInstitute));
+            // Collect encyclopedia article URLs from <site> elements — these have
+            // the richest structured medical content (symptoms, causes, treatments)
+            var encyclopediaUrls = topic.Elements("site")
+                .Select(s => s.Attribute("url")?.Value?.Trim() ?? "")
+                .Where(u => u.Contains("/ency/article/", StringComparison.OrdinalIgnoreCase))
+                .Distinct()
+                .Take(2)
+                .ToList();
+
+            topics.Add(new ParsedTopic(title, cleanSummary, groups, url, primaryInstitute, encyclopediaUrls));
         }
 
         _logger.LogInformation("MedlinePlus: parsed {Count} health topics from XML", topics.Count);
@@ -146,7 +165,18 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         return topics;
     }
 
-    private async Task<string?> FetchFullPageTextAsync(string? url, CancellationToken ct)
+    private async Task<string?> FetchFirstEncyclopediaArticleAsync(List<string> urls, CancellationToken ct)
+    {
+        foreach (var url in urls)
+        {
+            var text = await FetchPageTextAsync(url, MaxEncyclopediaChars, ct);
+            if (!string.IsNullOrWhiteSpace(text))
+                return text;
+        }
+        return null;
+    }
+
+    private async Task<string?> FetchPageTextAsync(string? url, int maxChars, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(url))
             return null;
@@ -157,29 +187,38 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             var html = await _httpClient.GetStringAsync(url, ct);
             var text = StripHtmlTags(html);
 
-            if (text.Length > MaxFullPageChars)
+            if (text.Length > maxChars)
             {
-                var cutoff = text.LastIndexOf(' ', MaxFullPageChars);
-                text = cutoff > 0 ? text[..cutoff] : text[..MaxFullPageChars];
+                var cutoff = text.LastIndexOf(' ', maxChars);
+                text = cutoff > 0 ? text[..cutoff] : text[..maxChars];
             }
 
             return text;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "MedlinePlus: failed to fetch full page {Url}", url);
+            _logger.LogWarning(ex, "MedlinePlus: failed to fetch page {Url}", url);
             return null;
         }
     }
 
-    private static string BuildRawText(ParsedTopic topic, string? fullPageText)
+    private static string BuildRawText(ParsedTopic topic, string? portalText, string? encyclopediaText)
     {
         var parts = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(topic.PrimaryInstitute))
             parts.Add($"[Source: {topic.PrimaryInstitute}]");
 
-        parts.Add(!string.IsNullOrWhiteSpace(fullPageText) ? fullPageText : topic.Summary);
+        // Prefer encyclopedia article as it has structured symptoms/causes/treatments.
+        // Include portal text as context if available.
+        if (!string.IsNullOrWhiteSpace(portalText))
+            parts.Add(portalText);
+
+        if (!string.IsNullOrWhiteSpace(encyclopediaText))
+            parts.Add($"[Encyclopedia Article]\n{encyclopediaText}");
+
+        if (parts.Count == (string.IsNullOrWhiteSpace(topic.PrimaryInstitute) ? 0 : 1))
+            parts.Add(topic.Summary);
 
         return string.Join("\n\n", parts);
     }
