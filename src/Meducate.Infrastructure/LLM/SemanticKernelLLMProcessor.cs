@@ -72,8 +72,11 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             - "actions" must contain only interventions applied AFTER the condition is
               present (treatments, management, self-care). Do NOT include general
               prevention advice aimed at people who have not yet developed the condition.
-            - "citations": include ONLY if explicitly named in the text (e.g. "NICE
-              Guideline NG28", "WHO"). Never fabricate or guess citation names.
+            - "citations": include named organisations, guidelines, or studies that
+              are explicitly referenced in the text as sources or contributors (e.g.
+              "Centers for Disease Control and Prevention", "Mayo Clinic", "WHO",
+              "NICE Guideline NG28"). Use the full name as it appears in the text.
+              Never fabricate or infer citation names not present in the source.
               Return [] if none are explicitly named.
             - DO NOT include a "category" field - categories are assigned separately
               using standardized medical classification

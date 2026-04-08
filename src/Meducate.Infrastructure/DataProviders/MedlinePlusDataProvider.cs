@@ -199,7 +199,11 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
 
     private static string StripHtmlTags(string html)
     {
-        var text = HtmlTagPattern().Replace(html, "");
+        // Remove script and style blocks entirely (including their content)
+        var text = ScriptBlockPattern().Replace(html, "");
+        text = StyleBlockPattern().Replace(text, "");
+        // Strip remaining tags
+        text = HtmlTagPattern().Replace(text, " ");
         text = System.Net.WebUtility.HtmlDecode(text);
         text = CollapseWhitespace().Replace(text, " ");
         return text.Trim();
@@ -207,6 +211,12 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
 
     [GeneratedRegex(@"xml/mplus_topics_\d{4}-\d{2}-\d{2}\.xml")]
     private static partial Regex XmlUrlPattern();
+
+    [GeneratedRegex(@"<script[\s\S]*?</script>", RegexOptions.IgnoreCase)]
+    private static partial Regex ScriptBlockPattern();
+
+    [GeneratedRegex(@"<style[\s\S]*?</style>", RegexOptions.IgnoreCase)]
+    private static partial Regex StyleBlockPattern();
 
     [GeneratedRegex(@"<[^>]+>")]
     private static partial Regex HtmlTagPattern();
