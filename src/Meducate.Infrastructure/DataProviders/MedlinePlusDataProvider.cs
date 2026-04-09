@@ -149,6 +149,11 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
                 .Where(a => !string.IsNullOrWhiteSpace(a))
                 .ToList();
 
+            var seeReferences = topic.Elements("see-reference")
+                .Select(s => s.Value?.Trim() ?? "")
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
             var groups = topic.Elements("group")
                 .Select(g => g.Value?.Trim() ?? "")
                 .Where(g => !string.IsNullOrWhiteSpace(g))
@@ -160,7 +165,12 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             // Collect encyclopedia article URLs from <site> elements — sort by
             // title relevance so the main condition article is preferred over
             // related tests or procedures (which appear first alphabetically).
+            // Expand title words with also-called and see-reference synonyms so
+            // e.g. "High blood pressure in adults - hypertension" scores higher
+            // than "High blood pressure - medicine-related".
             var titleWords = title.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Concat(alsoCalled.SelectMany(a => a.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
+                .Concat(seeReferences.SelectMany(s => s.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
                 .Where(w => w.Length > 2)
                 .Select(w => w.ToLowerInvariant())
                 .ToHashSet();
