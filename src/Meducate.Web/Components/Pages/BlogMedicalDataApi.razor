@@ -1,0 +1,149 @@
+@page "/blog/what-is-a-medical-data-api"
+
+<PageTitle>What Is a Medical Data API and Why Your Health App Needs One | Meducate Blog</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="A medical data API explained for developers building health education and informational apps. What it is, the problems it solves, and how to use it responsibly." />
+    <link rel="canonical" href="https://meducateapi.com/blog/what-is-a-medical-data-api" />
+    <meta property="og:title" content="What Is a Medical Data API and Why Your Health App Needs One | Meducate Blog" />
+    <meta property="og:description" content="What a medical data API is, the problems it solves for health education apps, and how to use it responsibly." />
+    <meta property="og:url" content="https://meducateapi.com/blog/what-is-a-medical-data-api" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="What Is a Medical Data API and Why Your Health App Needs One | Meducate Blog" />
+    <meta name="twitter:description" content="What a medical data API is and how to use it responsibly in health education apps." />
+    <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BlogPosting",
+        "headline": "What Is a Medical Data API and Why Your Health App Needs One",
+        "description": "What a medical data API is, the problems it solves for health education applications, and how to use it responsibly.",
+        "url": "https://meducateapi.com/blog/what-is-a-medical-data-api",
+        "image": "https://meducateapi.com/og-image.png",
+        "author": {
+            "@@type": "Organization",
+            "name": "Meducate API",
+            "url": "https://meducateapi.com"
+        },
+        "publisher": {
+            "@@type": "Organization",
+            "name": "Meducate API",
+            "url": "https://meducateapi.com"
+        },
+        "mainEntityOfPage": {
+            "@@type": "WebPage",
+            "@@id": "https://meducateapi.com/blog/what-is-a-medical-data-api"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://meducateapi.com/"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://meducateapi.com/blog"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 3,
+                "name": "What Is a Medical Data API and Why Your Health App Needs One",
+                "item": "https://meducateapi.com/blog/what-is-a-medical-data-api"
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <BreadcrumbNav PageName="What Is a Medical Data API" ParentName="Blog" ParentHref="/blog" />
+
+            <h1 class="fw-bold mb-3">What Is a Medical Data API and Why Your Health App Needs One</h1>
+            <p class="lead">If you're building a health education or informational application, a medical data API saves you from building and maintaining your own medical content database. Here's what it is, what it solves, and how to use it responsibly.</p>
+
+            <div class="alert alert-warning" role="alert">
+                <strong>Important:</strong> Meducate API is for <strong>educational and informational use only</strong>. It must not be used to provide diagnoses, treatment recommendations, or clinical decision support. See our <a href="/terms" class="alert-link">terms of service</a>.
+            </div>
+
+            <hr>
+
+            <h2 class="fw-semibold">The Problem: Medical Content Is Hard to Maintain</h2>
+            <p>Developers building health education apps face a common challenge: they need accurate, up-to-date medical content, but building a content pipeline for 2,000+ conditions and keeping it current is a significant ongoing engineering effort.</p>
+            <p>Public sources like MedlinePlus and PubMed contain authoritative health information, but it arrives in formats built for human readers — not for programmatic consumption. Before it's useful to an application, it needs to be normalised, structured, and classified. Without an automated pipeline, that processing quickly becomes a maintenance burden that competes with building the application itself.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">What Is a Medical Data API?</h2>
+            <p>A medical data API is a web service that provides programmatic access to structured medical information. Instead of building your own content pipeline, you query an endpoint and receive clean, consistent JSON ready for your application to use directly.</p>
+            <p>The Meducate API specifically provides structured health topic data — conditions, drugs, procedures, symptoms, and wellness topics — sourced from MedlinePlus and PubMed, processed daily, and classified by ICD-10 category. Every response follows a consistent JSON schema, so your application code stays simple regardless of which topic it requests.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">What It's Good For</h2>
+            <p>A medical data API is well-suited to applications whose purpose is to <strong>inform and educate</strong> — giving users general, accurate information about health topics in a structured, accessible format.</p>
+
+            <h3 class="fw-semibold mt-3">Health Education Apps</h3>
+            <p>Apps that help users understand medical conditions, symptoms, and treatments in plain language. The Meducate API provides content sourced directly from MedlinePlus — written for general audiences — along with ICD-10 classification to organise it by body system.</p>
+
+            <h3 class="fw-semibold mt-3">Patient Information Portals</h3>
+            <p>Portals that surface general educational descriptions alongside condition names in patient records — not personalised assessments, but general explanations of what a condition is in plain language.</p>
+
+            <h3 class="fw-semibold mt-3">Medical Training Tools</h3>
+            <p>Study apps, reference browsers, and training materials for medical students and healthcare staff learning medical terminology and ICD-10 classification.</p>
+
+            <h3 class="fw-semibold mt-3">General Health Information Sites</h3>
+            <p>Websites that include a health information section and want a reliable, maintained source of condition and topic data without a dedicated editorial team.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">What It's Not For</h2>
+            <p>This is equally important. A medical data API like Meducate is <strong>not appropriate</strong> for:</p>
+            <ul>
+                <li><strong>Symptom checkers that suggest diagnoses</strong> — assessing a user's individual symptoms and suggesting what condition they might have is a clinical function that requires qualified medical oversight and validated clinical data</li>
+                <li><strong>Treatment recommendation tools</strong> — suggesting specific treatments, medications, or procedures for an individual patient</li>
+                <li><strong>Clinical decision support</strong> — supporting clinicians in making patient care decisions</li>
+                <li><strong>Any feature presented as personalised medical advice</strong> — content from Meducate describes conditions in general terms and is not tailored to any individual's circumstances</li>
+            </ul>
+            <p>These are real clinical functions with patient safety implications. They require clinically validated data, regulatory compliance, and qualified medical oversight — none of which a general-purpose educational API provides. Meducate's <a href="/terms">terms of service</a> explicitly prohibit these use cases.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Medical Data API vs. Building Your Own Database</h2>
+            <p>Teams that consider building their own medical content database quickly encounter the same set of tradeoffs:</p>
+            <ul>
+                <li><strong>Initial build cost</strong> — ingesting, cleaning, and structuring data from MedlinePlus requires custom ETL pipelines and weeks of engineering work</li>
+                <li><strong>Ongoing maintenance</strong> — MedlinePlus updates constantly; without an automated refresh pipeline, your content grows stale</li>
+                <li><strong>Classification logic</strong> — correctly assigning ICD-10 categories to thousands of topics requires domain expertise and introduces its own maintenance burden</li>
+                <li><strong>Opportunity cost</strong> — every hour spent on content infrastructure is an hour not spent on your application's core features</li>
+            </ul>
+            <p>A medical data API handles all of this: the pipeline exists, data refreshes automatically, classification is pre-applied, and you start with a working dataset from day one.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Getting Started with Meducate API</h2>
+            <p>Meducate is free to use. <a href="/register">Register for an account</a>, verify your email, create an organisation, and generate an API key. You get 1,000 requests per day with no credit card required.</p>
+            <p>The <a href="/docs">documentation</a> has a full endpoint reference, code examples in curl, JavaScript, and Python, and an interactive Swagger UI for testing without writing any code first.</p>
+
+            <p class="mt-4">
+                <a href="/register" class="btn btn-primary me-2">Get a free API key</a>
+                <a href="/docs" class="btn btn-outline-secondary">View documentation</a>
+            </p>
+            <p class="text-muted mt-3">Further reading: <a href="/icd-10-api">ICD-10 API</a> · <a href="/medical-data-api">Medical Data API overview</a> · <a href="/use-cases">Use cases</a></p>
+
+        </div>
+    </div>
+</div>

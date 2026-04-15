@@ -1,0 +1,168 @@
+@page "/blog/how-to-integrate-icd-10-codes"
+
+<PageTitle>How to Integrate ICD-10 Codes into Your Healthcare App | Meducate Blog</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="A practical guide to ICD-10 integration for developers building health education and informational applications. Learn how to query ICD-10 classified medical data via the Meducate API." />
+    <link rel="canonical" href="https://meducateapi.com/blog/how-to-integrate-icd-10-codes" />
+    <meta property="og:title" content="How to Integrate ICD-10 Codes into Your Healthcare App | Meducate Blog" />
+    <meta property="og:description" content="A practical guide to ICD-10 integration for developers building health education and informational applications." />
+    <meta property="og:url" content="https://meducateapi.com/blog/how-to-integrate-icd-10-codes" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to Integrate ICD-10 Codes into Your Healthcare App | Meducate Blog" />
+    <meta name="twitter:description" content="A practical guide to ICD-10 integration for developers building health education applications." />
+    <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BlogPosting",
+        "headline": "How to Integrate ICD-10 Codes into Your Healthcare App",
+        "description": "A practical guide to ICD-10 integration for developers building health education and informational applications.",
+        "url": "https://meducateapi.com/blog/how-to-integrate-icd-10-codes",
+        "image": "https://meducateapi.com/og-image.png",
+        "author": {
+            "@@type": "Organization",
+            "name": "Meducate API",
+            "url": "https://meducateapi.com"
+        },
+        "publisher": {
+            "@@type": "Organization",
+            "name": "Meducate API",
+            "url": "https://meducateapi.com"
+        },
+        "mainEntityOfPage": {
+            "@@type": "WebPage",
+            "@@id": "https://meducateapi.com/blog/how-to-integrate-icd-10-codes"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://meducateapi.com/"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://meducateapi.com/blog"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 3,
+                "name": "How to Integrate ICD-10 Codes into Your Healthcare App",
+                "item": "https://meducateapi.com/blog/how-to-integrate-icd-10-codes"
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <BreadcrumbNav PageName="ICD-10 Integration" ParentName="Blog" ParentHref="/blog" />
+
+            <h1 class="fw-bold mb-3">How to Integrate ICD-10 Codes into Your Healthcare App</h1>
+            <p class="lead">A practical walkthrough for developers adding ICD-10 classified medical data to health education and informational applications.</p>
+
+            <div class="alert alert-warning" role="alert">
+                <strong>Important:</strong> Meducate API is for <strong>educational and informational use only</strong>. It must not be used to provide diagnoses, treatment recommendations, or clinical decision support. See our <a href="/terms" class="alert-link">terms of service</a>.
+            </div>
+
+            <hr>
+
+            <h2 class="fw-semibold">What Is ICD-10 and Why Does It Matter?</h2>
+            <p>ICD-10 — the International Classification of Diseases, 10th Revision — is the global standard for classifying medical conditions. Healthcare systems, EHRs, and insurers use ICD-10 as a common language for identifying and recording conditions. For developers building health education apps, it provides a consistent taxonomy for organising and presenting medical content.</p>
+            <p>The practical benefit is consistency. Without a standard classification, your app might display "heart disease", "coronary artery disease", and "CAD" as entirely separate topics. With ICD-10 categorisation, they all fall under Circulatory System — which means you can group, filter, and navigate content by body system in a way that makes intuitive sense to users.</p>
+            <p>It's worth being clear about what ICD-10 classification in an educational app is <em>not</em>: it is not a clinical coding tool. Meducate uses ICD-10 chapter categories to organise general health education content, not to assign diagnosis codes to individual patients.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Step 1: Get Your API Key</h2>
+            <p>To use the Meducate API, <a href="/register">register for a free account</a>. Verify your email, create an organisation, and generate an API key — no credit card required. You get 1,000 requests per day on the free tier.</p>
+            <p>Authenticate requests using the <code>X-Api-Key</code> header:</p>
+            <pre class="bg-light p-3 rounded"><code>X-Api-Key: YOUR_API_KEY</code></pre>
+
+            <hr>
+
+            <h2 class="fw-semibold">Step 2: Search for Health Topics by Keyword</h2>
+            <p>The search endpoint returns matching health topics with their ICD-10 category and type:</p>
+            <pre class="bg-light p-3 rounded"><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+  "https://api.meducateapi.com/api/topics/search?query=diabetes"</code></pre>
+
+            <p>The response includes structured topic data:</p>
+            <pre class="bg-light p-3 rounded"><code>{
+  "name": "Diabetes",
+  "type": "Disease",
+  "icd10Category": "Endocrine & Metabolic",
+  "description": "Diabetes is a group of metabolic diseases..."
+}</code></pre>
+
+            <p>The <code>icd10Category</code> field is how you organise content in your UI — group topics by body system, filter by category, or surface related topics.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Step 3: Retrieve a Specific Topic by Name</h2>
+            <p>To fetch a specific topic directly:</p>
+            <pre class="bg-light p-3 rounded"><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+  "https://api.meducateapi.com/api/topics/asthma"</code></pre>
+
+            <p>This is useful for enriching condition names with general educational descriptions — for example, displaying a plain-language explanation of a condition in a health information portal.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Step 4: Using ICD-10 Categories in Your UI</h2>
+            <p>The ICD-10 category field enables several patterns well-suited to educational applications:</p>
+
+            <h3 class="fw-semibold mt-3">Category-based Navigation</h3>
+            <p>Group topics by <code>icd10Category</code> to present a browsable health library organised by body system — matching the structure users expect from health reference content.</p>
+
+            <h3 class="fw-semibold mt-3">Filtered Search</h3>
+            <p>Allow users to narrow search results by category. Someone searching "pain" might want to browse only Musculoskeletal or Nervous System topics — the ICD-10 category makes this trivial to implement.</p>
+
+            <h3 class="fw-semibold mt-3">Related Topics</h3>
+            <p>Suggest related conditions by shared ICD-10 category. If a user is reading about asthma (Respiratory System), surface other respiratory topics as related reading — without maintaining a manual relationship database.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Step 5: Handle Rate Limits</h2>
+            <p>The free tier allows 1,000 requests per day per API key. To stay within limits:</p>
+            <ul>
+                <li>Cache topic responses — condition data changes at most daily, so a 24-hour TTL is a reasonable default</li>
+                <li>Fetch topics on demand rather than pre-loading the entire dataset</li>
+                <li>Handle <code>429 Too Many Requests</code> gracefully in your application</li>
+            </ul>
+
+            <hr>
+
+            <h2 class="fw-semibold">What to Avoid</h2>
+            <p>A few patterns that are outside the intended use of the Meducate API:</p>
+            <ul>
+                <li><strong>Don't build symptom checkers that suggest diagnoses.</strong> Displaying general information about conditions is fine. Assessing a user's specific symptoms and suggesting what condition they might have is not.</li>
+                <li><strong>Don't present content as personalised medical advice.</strong> All content should be clearly framed as general health information. Include a clear disclaimer directing users to consult a healthcare professional for personal medical questions.</li>
+                <li><strong>Don't use it for clinical tools.</strong> The data is sourced from public health education resources and is not validated for clinical decision-making.</li>
+            </ul>
+
+            <hr>
+
+            <h2 class="fw-semibold">Next Steps</h2>
+            <p>The <a href="/docs">API documentation</a> has a full endpoint reference with interactive examples and a public demo key for testing. The <a href="/use-cases">use cases page</a> covers more integration patterns for educational applications.</p>
+
+            <p class="mt-4">
+                <a href="/register" class="btn btn-primary me-2">Get a free API key</a>
+                <a href="/docs" class="btn btn-outline-secondary">View documentation</a>
+            </p>
+
+        </div>
+    </div>
+</div>

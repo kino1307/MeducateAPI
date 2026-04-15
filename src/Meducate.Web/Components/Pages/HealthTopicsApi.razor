@@ -1,0 +1,157 @@
+@page "/health-topics-api"
+
+<PageTitle>Health Topics API — Structured Medical Health Topic Data | Meducate API</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="Query 2,000+ structured health topics via REST API. Meducate provides ICD-10 classified health topic data sourced from MedlinePlus and PubMed, refreshed daily. Free to use." />
+    <link rel="canonical" href="https://meducateapi.com/health-topics-api" />
+    <meta property="og:title" content="Health Topics API — Structured Medical Health Topic Data | Meducate API" />
+    <meta property="og:description" content="Query 2,000+ structured health topics via REST API. ICD-10 classified, sourced from MedlinePlus and PubMed, refreshed daily. Free to use." />
+    <meta property="og:url" content="https://meducateapi.com/health-topics-api" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Health Topics API — Structured Medical Health Topic Data | Meducate API" />
+    <meta name="twitter:description" content="Query 2,000+ structured health topics via REST API. ICD-10 classified, sourced from MedlinePlus and PubMed." />
+    <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://meducateapi.com/"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 2,
+                "name": "Health Topics API",
+                "item": "https://meducateapi.com/health-topics-api"
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <BreadcrumbNav PageName="Health Topics API" />
+
+            <h1 class="fw-bold mb-3">Health Topics API</h1>
+            <p class="lead">Query over 2,000 structured health topics through a simple REST API. Every topic is ICD-10 classified, typed, and sourced from authoritative medical references.</p>
+
+            <a href="/register" class="btn btn-primary mt-2 mb-4">Get a free API key</a>
+
+            <hr>
+
+            <h2 class="fw-semibold">What Health Topic Data Is Available?</h2>
+            <p>The Meducate health topics API provides access to a structured dataset of medical conditions, diseases, drugs, symptoms, procedures, and wellness topics. The dataset covers the full scope of the MedlinePlus health topic library — over 2,000 topics spanning every major area of medicine.</p>
+            <p>Each health topic in the API includes:</p>
+            <ul>
+                <li><strong>Name</strong> — the canonical topic name</li>
+                <li><strong>Description</strong> — a structured summary synthesised from authoritative sources</li>
+                <li><strong>Type</strong> — classification of the topic kind: Disease, Drug, Procedure, Symptom, Condition, or Wellness</li>
+                <li><strong>ICD-10 category</strong> — the ICD-10 chapter the topic belongs to (e.g. Respiratory System, Mental & Behavioral, Drugs & Medications)</li>
+            </ul>
+
+            <hr>
+
+            <h2 class="fw-semibold">Topic Types Covered</h2>
+
+            <h3 class="fw-semibold mt-3">Diseases & Conditions</h3>
+            <p>The largest category. Covers chronic conditions (diabetes, hypertension, asthma), acute diseases (pneumonia, appendicitis), infectious diseases (influenza, HIV), and rare conditions. Each is classified by ICD-10 body system or condition category.</p>
+
+            <h3 class="fw-semibold mt-3">Drugs & Medications</h3>
+            <p>Common prescription and over-the-counter medications, including their uses, classifications, and related conditions. Mapped to the Drugs & Medications ICD-10 category for consistent filtering.</p>
+
+            <h3 class="fw-semibold mt-3">Medical Procedures</h3>
+            <p>Surgical procedures, diagnostic tests, and medical interventions. Useful for building procedure lookup tools, pre-procedure patient education content, or billing assistance features.</p>
+
+            <h3 class="fw-semibold mt-3">Symptoms</h3>
+            <p>Common patient-reported symptoms classified by body system. Useful as input for symptom checker logic or triage flow classification.</p>
+
+            <h3 class="fw-semibold mt-3">Wellness & Preventive Care</h3>
+            <p>Topics covering nutrition, mental health, preventive care, and general wellness — ideal for consumer-facing health apps and patient engagement platforms.</p>
+
+            <h3 class="fw-semibold mt-3">Pediatric Health</h3>
+            <p>Conditions, developmental milestones, and health topics specific to children and adolescents, classified under the Pediatric Health category.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">ICD-10 Category Coverage</h2>
+            <p>Every topic is assigned to one of 24 ICD-10 aligned categories:</p>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <ul>
+                        <li>Infectious & Parasitic Diseases</li>
+                        <li>Neoplasms</li>
+                        <li>Blood & Immune System</li>
+                        <li>Endocrine & Metabolic</li>
+                        <li>Mental & Behavioral Disorders</li>
+                        <li>Nervous System</li>
+                        <li>Eye & Vision</li>
+                        <li>Ear & Hearing</li>
+                        <li>Circulatory System</li>
+                        <li>Respiratory System</li>
+                        <li>Digestive System</li>
+                        <li>Skin & Subcutaneous Tissue</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul>
+                        <li>Musculoskeletal & Connective Tissue</li>
+                        <li>Urinary System</li>
+                        <li>Reproductive & Sexual Health</li>
+                        <li>Pregnancy & Childbirth</li>
+                        <li>Pediatric Health</li>
+                        <li>Injuries & External Causes</li>
+                        <li>Drugs & Medications</li>
+                        <li>Medical Procedures</li>
+                        <li>Diagnostic & Laboratory</li>
+                        <li>Health & Wellness</li>
+                        <li>Nutrition & Dietary</li>
+                        <li>Preventive Care</li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr>
+
+            <h2 class="fw-semibold">Querying Health Topics</h2>
+            <p>The health topics API supports searching by keyword and filtering by category or type. A simple search looks like this:</p>
+
+            <pre class="bg-light p-3 rounded"><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+  "https://api.meducateapi.com/api/topics/search?query=diabetes"</code></pre>
+
+            <p>To retrieve a specific topic by name:</p>
+
+            <pre class="bg-light p-3 rounded"><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+  "https://api.meducateapi.com/api/topics/diabetes"</code></pre>
+
+            <p>See the <a href="/docs">full API documentation</a> for all available endpoints, query parameters, and response schemas.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Data Sources</h2>
+            <p>Health topic data is sourced from:</p>
+            <ul>
+                <li><strong>MedlinePlus</strong> — U.S. National Library of Medicine, covering 2,000+ health topics updated daily. The primary source for topic inclusion: if a topic is on MedlinePlus, it's in Meducate. If it's removed from MedlinePlus, it's retired from Meducate automatically.</li>
+                <li><strong>PubMed</strong> — peer-reviewed biomedical literature from the NLM. Used to enrich topics with additional research context.</li>
+            </ul>
+
+            <hr>
+
+            <p class="mt-4">
+                <a href="/register" class="btn btn-primary me-2">Get a free API key</a>
+                <a href="/docs" class="btn btn-outline-secondary">View documentation</a>
+            </p>
+            <p class="text-muted mt-3">Also see: <a href="/icd-10-api">ICD-10 API</a> · <a href="/medical-data-api">Medical Data API</a> · <a href="/use-cases">Use Cases</a></p>
+
+        </div>
+    </div>
+</div>

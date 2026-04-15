@@ -1,0 +1,123 @@
+@page "/icd-10-api"
+
+<PageTitle>ICD-10 API — Structured ICD-10 Health Topic Data for Developers | Meducate</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="Access ICD-10 classified medical data via a simple REST API. Meducate API delivers structured health topics categorised by ICD-10 chapters — free to use, refreshed daily." />
+    <link rel="canonical" href="https://meducateapi.com/icd-10-api" />
+    <meta property="og:title" content="ICD-10 API — Structured ICD-10 Health Topic Data for Developers | Meducate" />
+    <meta property="og:description" content="Access ICD-10 classified medical data via a simple REST API. Meducate API delivers structured health topics categorised by ICD-10 chapters — free to use, refreshed daily." />
+    <meta property="og:url" content="https://meducateapi.com/icd-10-api" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://meducateapi.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ICD-10 API — Structured ICD-10 Health Topic Data for Developers | Meducate" />
+    <meta name="twitter:description" content="Access ICD-10 classified medical data via a simple REST API. Free, refreshed daily, and easy to integrate." />
+    <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://meducateapi.com/"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 2,
+                "name": "ICD-10 API",
+                "item": "https://meducateapi.com/icd-10-api"
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <BreadcrumbNav PageName="ICD-10 API" />
+
+            <h1 class="fw-bold mb-3">ICD-10 API for Developers</h1>
+            <p class="lead">Access structured, ICD-10 classified medical health topic data through a simple REST API. Free to get started, refreshed daily from trusted sources.</p>
+
+            <a href="/register" class="btn btn-primary mt-2 mb-4">Get a free API key</a>
+
+            <hr>
+
+            <h2 class="fw-semibold">What is ICD-10?</h2>
+            <p>ICD-10 — the International Classification of Diseases, 10th Revision — is the global standard for classifying medical conditions, symptoms, and procedures. Maintained by the World Health Organization and adopted worldwide, ICD-10 provides a universal language for medical coding used by:</p>
+            <ul>
+                <li>Electronic Health Record (EHR) systems</li>
+                <li>Insurance billing and claims processing</li>
+                <li>Hospital and clinical administration</li>
+                <li>Public health and epidemiology research</li>
+                <li>Healthcare apps and patient-facing software</li>
+            </ul>
+            <p>ICD-10 organises diseases and conditions into 22 chapters based on body system or condition category — from Diseases of the Respiratory System to Mental and Behavioural Disorders. These chapters provide a structured framework that developers can use to categorise, filter, and present medical data consistently.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Why Developers Need an ICD-10 API</h2>
+            <p>Building health software without standardised medical classification is fragile. Without a consistent taxonomy, your app might store "heart attack", "myocardial infarction", and "MI" as three separate concepts — creating gaps when filtering, searching, or integrating with clinical systems that use ICD-10 codes.</p>
+            <p>An ICD-10 API solves this by giving you medical data that is already classified and structured according to the ICD-10 standard. Instead of building and maintaining your own classification logic, you query an endpoint and get back data that is already organised by ICD-10 chapter — ready to integrate with your existing healthcare infrastructure.</p>
+            <p>Common use cases for ICD-10 API integration include:</p>
+            <ul>
+                <li><strong>Symptom checkers</strong> — classifying symptoms by body system for structured triage flows</li>
+                <li><strong>EHR integrations</strong> — enriching patient records with structured condition descriptions</li>
+                <li><strong>Medical billing software</strong> — associating conditions with the correct ICD-10 category for coding assistance</li>
+                <li><strong>Health education apps</strong> — presenting medically accurate, categorised content to patients and clinicians</li>
+                <li><strong>Clinical decision support tools</strong> — surfacing relevant condition information by category</li>
+            </ul>
+
+            <hr>
+
+            <h2 class="fw-semibold">How Meducate API Implements ICD-10 Classification</h2>
+            <p>Meducate API automatically classifies every health topic into one of 24 ICD-10 based categories aligned with the standard ICD-10 chapter structure:</p>
+            <ul>
+                <li>Body system categories: Respiratory, Circulatory, Nervous, Digestive, Musculoskeletal, Endocrine, Urinary, Reproductive, and more</li>
+                <li>Condition categories: Infectious & Parasitic Diseases, Neoplasms, Mental & Behavioral Disorders</li>
+                <li>Treatment categories: Drugs & Medications, Medical Procedures, Diagnostic & Laboratory</li>
+                <li>Wellness categories: Health & Wellness, Nutrition & Dietary, Preventive Care, Pediatric Health</li>
+            </ul>
+            <p>Classification is performed automatically using LLM-based processing across data from <strong>MedlinePlus</strong> — the U.S. National Library of Medicine's health information service. This means every topic you retrieve from the API comes with an ICD-10 category field you can use for filtering, grouping, and display logic without any additional processing on your side.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Integrating the ICD-10 API</h2>
+            <p>Meducate API uses standard HTTP with JSON responses and API key authentication. Here's a basic example querying topics in the Respiratory System category:</p>
+
+            <pre class="bg-light p-3 rounded"><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+  "https://api.meducateapi.com/api/topics/search?query=asthma"</code></pre>
+
+            <p>The response includes structured topic data with the ICD-10 category field:</p>
+
+            <pre class="bg-light p-3 rounded"><code>{
+  "name": "Asthma",
+  "type": "Disease",
+  "icd10Category": "Respiratory System",
+  "description": "..."
+}</code></pre>
+
+            <p>Authentication uses a simple request header — no OAuth, no token exchange, no complex setup. <a href="/docs">See the full documentation</a> for all available endpoints and parameters.</p>
+
+            <hr>
+
+            <h2 class="fw-semibold">Data Freshness & Reliability</h2>
+            <p>All health topics in Meducate are sourced from MedlinePlus and processed daily. The dataset covers 2,000+ conditions, diseases, drugs, symptoms, and procedures — all classified, structured, and kept current. Topics are automatically retired when removed from the source, so your integration never serves stale or invalid data.</p>
+
+            <hr>
+
+            <p class="mt-4">
+                <a href="/register" class="btn btn-primary me-2">Get a free API key</a>
+                <a href="/docs" class="btn btn-outline-secondary">View documentation</a>
+            </p>
+            <p class="text-muted mt-3">Also see: <a href="/medical-data-api">Medical Data API</a> · <a href="/health-topics-api">Health Topics API</a> · <a href="/use-cases">Use Cases</a></p>
+
+        </div>
+    </div>
+</div>

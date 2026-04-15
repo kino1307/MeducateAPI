@@ -3,19 +3,19 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<PageTitle>API Documentation - Meducate API</PageTitle>
+<PageTitle>ICD-10 API Reference & Endpoint Documentation | Meducate API</PageTitle>
 
 <HeadContent>
-    <meta name="description" content="Interactive API documentation for Meducate API. Explore endpoints for searching, filtering, and retrieving structured medical education data." />
+    <meta name="description" content="Full endpoint reference for the Meducate medical data API. Interactive docs for querying ICD-10 classified health topics, filtering by category, and retrieving structured medical data." />
     <link rel="canonical" href="https://meducateapi.com/docs" />
-    <meta property="og:title" content="API Documentation - Meducate API" />
-    <meta property="og:description" content="Interactive API documentation for Meducate API. Explore endpoints for searching, filtering, and retrieving structured medical education data." />
+    <meta property="og:title" content="ICD-10 API Reference & Endpoint Documentation | Meducate API" />
+    <meta property="og:description" content="Full endpoint reference for the Meducate medical data API. Interactive docs for querying ICD-10 classified health topics, filtering by category, and retrieving structured medical data." />
     <meta property="og:url" content="https://meducateapi.com/docs" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://meducateapi.com/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="API Documentation - Meducate API" />
-    <meta name="twitter:description" content="Interactive API documentation for Meducate API. Explore endpoints for searching, filtering, and retrieving structured medical education data." />
+    <meta name="twitter:title" content="ICD-10 API Reference & Endpoint Documentation | Meducate API" />
+    <meta name="twitter:description" content="Full endpoint reference for the Meducate medical data API. Interactive docs for querying ICD-10 classified health topics, filtering by category, and retrieving structured medical data." />
     <meta name="twitter:image" content="https://meducateapi.com/og-image.png" />
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.31.2/swagger-ui.css" integrity="sha384-KX9Rx9vM1AmUNAn07bPAiZhFD4C8jdNgG6f5MRNvR+EfAxs2PmMFtUUazui7ryZQ" crossorigin="anonymous" />
     <script type="application/ld+json">
@@ -25,12 +25,32 @@
         "name": "Meducate API",
         "url": "https://api.meducateapi.com",
         "documentation": "https://meducateapi.com/docs",
-        "description": "REST API providing structured, ICD-10 classified medical education data refreshed daily from MedlinePlus and PubMed.",
+        "description": "REST API providing structured, ICD-10 classified medical data refreshed daily from MedlinePlus and PubMed.",
         "provider": {
             "@@type": "Organization",
             "name": "Meducate API",
             "url": "https://meducateapi.com"
         }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://meducateapi.com/"
+            },
+            {
+                "@@type": "ListItem",
+                "position": 2,
+                "name": "API Documentation",
+                "item": "https://meducateapi.com/docs"
+            }
+        ]
     }
     </script>
 </HeadContent>
@@ -45,7 +65,7 @@
 
             <hr>
 
-            <h2 class="fw-semibold">What Meducate API does</h2>
+            <h2 class="fw-semibold">What the Medical Data API Provides</h2>
 
             <p>Meducate aggregates medical reference data from external providers and processes it using large language models (LLMs). This data is normalised and structured into predictable formats with <strong>ICD-10 standardized categorization</strong> that can be reliably consumed by applications.</p>
 
@@ -64,7 +84,7 @@
 
             <hr>
 
-            <h2 class="fw-semibold">Quick start</h2>
+            <h2 class="fw-semibold">Quick Start: Query ICD-10 Health Topics</h2>
 
             <p>Search for health topics using your API key. Replace <code>YOUR_API_KEY</code> with your key or use the <a href="#demo-key" data-enhance-nav="false">demo key</a> below.</p>
 
@@ -107,7 +127,7 @@ print(response.json())</code></pre>
 
             <hr>
 
-            <h2 class="fw-semibold">Usage limits</h2>
+            <h2 class="fw-semibold">API Rate Limits & Daily Usage</h2>
 
             <ul class="mt-3">
                 <li><strong>1,000 requests per day</strong> per API key</li>

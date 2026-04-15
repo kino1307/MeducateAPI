@@ -71,6 +71,22 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseHttpsRedirection();
 
+// Redirect www to canonical non-www (must be after HTTPS redirect so the redirect URL is always https)
+app.Use(async (context, next) =>
+{
+    var host = context.Request.Host.Host;
+    if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+    {
+        var nonWwwHost = host[4..];
+        var port = context.Request.Host.Port;
+        var hostString = port.HasValue ? $"{nonWwwHost}:{port}" : nonWwwHost;
+        var redirectUrl = $"{context.Request.Scheme}://{hostString}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect(redirectUrl, permanent: true);
+        return;
+    }
+    await next();
+});
+
 var isDevelopment = app.Environment.IsDevelopment();
 
 app.Use(async (ctx, next) =>
