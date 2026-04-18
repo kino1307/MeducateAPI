@@ -365,7 +365,10 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
                 This topic is a SYMPTOM. Interpret fields accordingly:
                 - "factors": list conditions or factors that cause this symptom, as stated in the text
                 - "actions": list management strategies and remedies mentioned in the text
-                - "observations": list associated or related symptoms if mentioned in the text, otherwise []
+                - "observations": list how this symptom typically presents — physical signs,
+                  accompanying sensations, variations in severity or form, or related symptoms
+                  mentioned in the text. Apply the FALLBACK FOR SPARSE SOURCES rule if the text
+                  does not list these explicitly as discrete items.
                 Prefer items from the source text. See FALLBACK FOR SPARSE SOURCES
                 if the text is descriptive prose without discrete lists.
                 """,
