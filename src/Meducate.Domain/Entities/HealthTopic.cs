@@ -42,4 +42,7 @@ internal sealed class HealthTopic
 
     [JsonIgnore]
     public bool NeedsLlmReprocessing { get; set; }
+
+    [JsonIgnore]
+    public int ReprocessAttempts { get; set; }
 }

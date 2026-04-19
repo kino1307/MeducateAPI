@@ -14,6 +14,7 @@ internal sealed class TopicRefreshService(
     ITopicWriteRepository writeRepo,
     ILLMProcessor llmProcessor,
     ITopicRepository topicRepo,
+    TopicBackfillService backfillService,
     ILogger<TopicRefreshService> logger)
 {
     private readonly IMedicalDataProvider[] _providers = [.. providers];
@@ -21,9 +22,11 @@ internal sealed class TopicRefreshService(
     private readonly ITopicWriteRepository _writeRepo = writeRepo;
     private readonly ILLMProcessor _llmProcessor = llmProcessor;
     private readonly ITopicRepository _topicRepo = topicRepo;
+    private readonly TopicBackfillService _backfillService = backfillService;
     private readonly ILogger<TopicRefreshService> _logger = logger;
 
     private static readonly TimeSpan LlmThrottle = TimeSpan.FromMilliseconds(500);
+    private const int MaxReprocessAttempts = 3;
 
     internal async Task RefreshAllAsync(PerformContext? console = null, CancellationToken ct = default)
     {
@@ -104,6 +107,7 @@ internal sealed class TopicRefreshService(
                 topic.RawSource = newRawSource;
                 topic.SourceHash = newHash;
                 topic.NeedsLlmReprocessing = true;
+                topic.ReprocessAttempts = 0;
                 changed++;
             }
             else if (!string.Equals(topic.RawSource, newRawSource, StringComparison.Ordinal))
@@ -237,20 +241,33 @@ internal sealed class TopicRefreshService(
                 // Preserve existing TopicType — don't overwrite with null
                 topic.LastUpdated = DateTime.UtcNow;
                 topic.Version++;
+                topic.ReprocessAttempts++;
 
                 var qualityIssue = TopicHelpers.CheckTopicQuality(topic);
                 if (qualityIssue is not null)
                 {
-                    if (_logger.IsEnabled(LogLevel.Information))
+                    if (topic.ReprocessAttempts >= MaxReprocessAttempts)
                     {
-                        _logger.LogInformation("Topic '{Name}' still low quality after reprocessing: {Reason}", topic.Name, qualityIssue);
+                        _logger.LogWarning(
+                            "Topic '{Name}' still low quality after {Attempts} attempts ({Reason}) — clearing reprocess flag",
+                            topic.Name, topic.ReprocessAttempts, qualityIssue);
+                        console?.WriteLine($"  [{topic.Name}] Giving up after {topic.ReprocessAttempts} attempts — {qualityIssue}");
+                        topic.NeedsLlmReprocessing = false;
                     }
-                    console?.WriteLine($"  [{topic.Name}] Reprocessed but still low quality — {qualityIssue}");
-                    // Keep NeedsLlmReprocessing = true so it's retried when source data improves
+                    else
+                    {
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Topic '{Name}' still low quality after reprocessing (attempt {Attempt}/{Max}): {Reason}",
+                                topic.Name, topic.ReprocessAttempts, MaxReprocessAttempts, qualityIssue);
+                        }
+                        console?.WriteLine($"  [{topic.Name}] Reprocessed but still low quality (attempt {topic.ReprocessAttempts}/{MaxReprocessAttempts}) — {qualityIssue}");
+                    }
                 }
                 else
                 {
                     topic.NeedsLlmReprocessing = false;
+                    topic.ReprocessAttempts = 0;
                 }
 
                 reprocessedCount++;
@@ -321,22 +338,25 @@ internal sealed class TopicRefreshService(
             }
         }
 
-        if (reprocessedCount > 0 || categorizedCount > 0)
+        // Phase 4 — Flag any topics with empty structured fields for next reprocessing cycle
+        var emptyFieldsCount = await _backfillService.BackfillEmptyStructuredFieldsAsync(ct, console);
+
+        if (reprocessedCount > 0 || categorizedCount > 0 || emptyFieldsCount > 0)
         {
             _topicRepo.InvalidateCache();
             if (_logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("Cache invalidated after reprocessing {Reprocessed} and categorizing {Categorized} topics",
-                    reprocessedCount, categorizedCount);
+                _logger.LogInformation("Cache invalidated after reprocessing {Reprocessed}, categorizing {Categorized}, flagging {EmptyFields} empty-field topics",
+                    reprocessedCount, categorizedCount, emptyFieldsCount);
             }
         }
 
         if (_logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation("Topic refresh complete — refreshed {Refreshed}, reprocessed {Reprocessed}, categorized {Categorized}",
-                toRefresh.Count, reprocessedCount, categorizedCount);
+            _logger.LogInformation("Topic refresh complete — refreshed {Refreshed}, reprocessed {Reprocessed}, categorized {Categorized}, flagged {EmptyFields} empty-field topics",
+                toRefresh.Count, reprocessedCount, categorizedCount, emptyFieldsCount);
         }
-        console?.WriteLine($"Done — {refreshed} refreshed, {reprocessedCount} reprocessed, {categorizedCount} categorized.");
+        console?.WriteLine($"Done — {refreshed} refreshed, {reprocessedCount} reprocessed, {categorizedCount} categorized, {emptyFieldsCount} flagged for empty fields.");
     }
 
     private async Task<List<RawTopicData>> FetchAllProvidersAsync(HealthTopic topic, CancellationToken ct)

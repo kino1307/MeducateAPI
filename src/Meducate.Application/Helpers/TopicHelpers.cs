@@ -47,12 +47,14 @@ internal static class TopicHelpers
         if (topic.Summary.Trim().Equals(topic.Name.Trim(), StringComparison.OrdinalIgnoreCase))
             return "summary just restates the topic name";
 
-        var hasObservations = topic.Observations is { Count: > 0 };
-        var hasFactors = topic.Factors is { Count: > 0 };
-        var hasActions = topic.Actions is { Count: > 0 };
+        if (topic.Observations is not { Count: > 0 })
+            return "no observations populated";
 
-        if (!hasObservations && !hasFactors && !hasActions)
-            return "no observations, factors, or actions populated";
+        if (topic.Factors is not { Count: > 0 })
+            return "no factors populated";
+
+        if (topic.Actions is not { Count: > 0 })
+            return "no actions populated";
 
         return null;
     }

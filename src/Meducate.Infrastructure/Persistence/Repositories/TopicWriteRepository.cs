@@ -107,9 +107,12 @@ internal sealed class TopicWriteRepository(MeducateDbContext db) : ITopicWriteRe
         await _db.SaveChangesAsync(ct);
     }
 
+    private const int MaxReprocessAttempts = 3;
+
     public async Task<List<HealthTopic>> GetTopicsWithEmptyStructuredFieldsAsync(CancellationToken ct) =>
         await _db.HealthTopics
             .Where(c => !c.NeedsLlmReprocessing
+                && c.ReprocessAttempts < MaxReprocessAttempts
                 && ((c.Observations == null || c.Observations.Count == 0)
                 || (c.Factors == null || c.Factors.Count == 0)
                 || (c.Actions == null || c.Actions.Count == 0)))
