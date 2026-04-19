@@ -179,8 +179,10 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
                 .Select(s => (
                     Url: s.Attribute("url")?.Value?.Trim() ?? "",
                     SiteTitle: s.Attribute("title")?.Value?.Trim() ?? ""))
-                .Where(s => s.Url.Contains("/ency/", StringComparison.OrdinalIgnoreCase)
-                         && !s.Url.Contains("/spanish/ency/", StringComparison.OrdinalIgnoreCase))
+                .Where(s =>
+                    (s.Url.Contains("/ency/article/", StringComparison.OrdinalIgnoreCase)
+                     || s.Url.Contains("/ency/patientinstructions/", StringComparison.OrdinalIgnoreCase))
+                    && !s.Url.Contains("/spanish/ency/", StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(s => s.SiteTitle.Split(' ', StringSplitOptions.RemoveEmptyEntries)
                     .Count(w => titleWords.Contains(w.ToLowerInvariant().TrimEnd('.', ',', ';', ':'))))
                 .Select(s => s.Url)
