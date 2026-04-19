@@ -69,16 +69,37 @@ public class TopicHelpersTests
     }
 
     [Fact]
-    public void CheckTopicQuality_ReturnsNull_WhenPartiallyPopulated()
+    public void CheckTopicQuality_ReturnsError_WhenFactorsMissing()
     {
         var topic = new HealthTopic
         {
             Name = "Diabetes",
             Summary = new string('A', 100),
-            Observations = ["Increased thirst"]
+            Observations = ["Increased thirst"],
+            Actions = ["Monitor blood sugar"]
         };
 
-        Assert.Null(TopicHelpers.CheckTopicQuality(topic));
+        var result = TopicHelpers.CheckTopicQuality(topic);
+
+        Assert.NotNull(result);
+        Assert.Contains("no factors", result);
+    }
+
+    [Fact]
+    public void CheckTopicQuality_ReturnsError_WhenActionsMissing()
+    {
+        var topic = new HealthTopic
+        {
+            Name = "Diabetes",
+            Summary = new string('A', 100),
+            Observations = ["Increased thirst"],
+            Factors = ["Genetics"]
+        };
+
+        var result = TopicHelpers.CheckTopicQuality(topic);
+
+        Assert.NotNull(result);
+        Assert.Contains("no actions", result);
     }
 
     [Fact]
