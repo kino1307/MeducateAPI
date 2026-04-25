@@ -94,23 +94,29 @@ internal sealed class TopicIngestionService(
             }
         }
 
-        // 3b. Record all classification decisions in SeenTopic table
+        // 3b. Record filtered/non-medical classification decisions in SeenTopic table immediately.
+        //     Processable types (Disease, Disorder, etc.) are recorded only after successful
+        //     HealthTopic creation in step 5 — recording them here would permanently block
+        //     rediscovery if LLM processing later fails.
         if (topicTypeMap.Count > 0)
         {
-            var seenTopics = topicTypeMap.Select(kvp => new SeenTopic
-            {
-                Name = kvp.Key,
-                Status = TopicHelpers.GetSeenStatus(kvp.Value),
-                TopicType = kvp.Value,
-                FirstSeen = DateTime.UtcNow
-            }).ToList();
+            var seenTopics = topicTypeMap
+                .Where(kvp => !_llmProcessor.ShouldProcessTopicType(kvp.Value))
+                .Select(kvp => new SeenTopic
+                {
+                    Name = kvp.Key,
+                    Status = TopicHelpers.GetSeenStatus(kvp.Value),
+                    TopicType = kvp.Value,
+                    FirstSeen = DateTime.UtcNow
+                }).ToList();
 
-            await _writeRepo.AddSeenTopicsAsync(seenTopics, ct);
+            if (seenTopics.Count > 0)
+                await _writeRepo.AddSeenTopicsAsync(seenTopics, ct);
 
             if (_logger.IsEnabled(LogLevel.Information))
-                _logger.LogInformation("Recorded {Count} classification decisions in SeenTopics", seenTopics.Count);
+                _logger.LogInformation("Recorded {Count} filtered classification decisions in SeenTopics", seenTopics.Count);
 
-            console?.WriteLine($"Recorded {seenTopics.Count} classification decisions.");
+            console?.WriteLine($"Recorded {seenTopics.Count} filtered classification decisions.");
         }
 
         // 4. Group discoveries by topic name, merge raw text across providers — all topics proceed
@@ -191,6 +197,12 @@ internal sealed class TopicIngestionService(
 
                 await Task.Delay(LlmThrottle, ct);
                 var structured = await _llmProcessor.ParseHealthTopicAsync(mergedRawSource, topicType, group.Key, ct);
+
+                if (structured is not null)
+                {
+                    await Task.Delay(LlmThrottle, ct);
+                    structured = await _llmProcessor.VerifyHealthTopicAsync(mergedRawSource, structured, ct) ?? structured;
+                }
 
                 if (structured is null)
                 {
@@ -303,6 +315,13 @@ internal sealed class TopicIngestionService(
                 structured.OriginalName = group.Key;
 
                 await _writeRepo.AddAsync(structured, ct);
+                await _writeRepo.AddSeenTopicsAsync([new SeenTopic
+                {
+                    Name = group.Key,
+                    Status = TopicHelpers.GetSeenStatus(topicType),
+                    TopicType = topicType,
+                    FirstSeen = DateTime.UtcNow
+                }], ct);
 
                 existingNamesSet.Add(structured.Name);
                 addedCount++;

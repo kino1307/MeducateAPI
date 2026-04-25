@@ -116,6 +116,57 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             functionName: "ExtractMedicalInfo"
         );
 
+    private readonly KernelFunction _verifyFunction = kernel.CreateFunctionFromPrompt(
+            """
+            You are a medical content verifier. A separate AI agent extracted the structured
+            data below from the source text. Your job is to check the extraction against the
+            source and return a corrected version.
+
+            You are given the same context used during extraction so you understand how each
+            field should be interpreted for this topic type.
+
+            {{$typeInstructions}}
+
+            FIELD RULES — identical to those used during extraction:
+            - "name": the medical condition name. Do NOT change this under any circumstances.
+            - "summary": up to 6 sentences paraphrasing ONLY what the source text states.
+              Do not add context, background, or elaboration not present in the source.
+              Preserve all qualifiers, caveats, and restrictions exactly as the source states
+              them (e.g. if the source says "aspirin (for adults)", the summary must retain
+              that restriction — do not silently generalise).
+            - "observations", "factors", "actions": concise items traceable to the source text.
+              "actions" must contain only interventions applied AFTER the condition is present.
+            - "citations": only named organisations or guidelines explicitly referenced in the
+              source text. Return [] if none are named.
+            - "tags": terms drawn directly from the source text.
+
+            WHAT TO CORRECT:
+            1. Dropped qualifiers or caveats — e.g. source says "aspirin (for adults)" but
+               extraction omits "(for adults)". Restore the qualification.
+            2. Out-of-scope content — e.g. veterinary information mixed into a human medical
+               topic, or general knowledge added beyond what the source contains.
+            3. Inaccurate paraphrasing that changes or reverses the meaning of the source.
+            4. Structured field items (observations/factors/actions) not supported by the source.
+
+            WHAT NOT TO DO:
+            - Do NOT change the "name" field.
+            - Do NOT add new information absent from both the source and the extraction.
+            - Do NOT penalise light interpretation of descriptive prose into structured items —
+              the extractor was permitted to break down prose into individual entries.
+            - If a field is correct, return it exactly as provided.
+
+            Return raw JSON only, no code fences, no explanation.
+            Schema: {"name":"","summary":"","observations":[],"factors":[],"actions":[],"citations":[],"tags":[]}
+
+            SOURCE TEXT:
+            {{$rawText}}
+
+            EXTRACTED CONTENT:
+            {{$extractedJson}}
+            """,
+            functionName: "VerifyMedicalContent"
+        );
+
     private readonly KernelFunction _classifyFunction = kernel.CreateFunctionFromPrompt(
             """
             You are a medical terminology classifier. You will receive a list of health
@@ -551,6 +602,77 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
         };
 
         return topic;
+    }
+
+    public async Task<HealthTopic?> VerifyHealthTopicAsync(string rawText, HealthTopic extracted, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+            throw new ArgumentException("Raw text cannot be null or empty.", nameof(rawText));
+
+        ArgumentNullException.ThrowIfNull(extracted);
+
+        var typeInstructions = GetTypeInstructions(extracted.TopicType);
+
+        var extractedJson = JsonSerializer.Serialize(new
+        {
+            name = extracted.Name,
+            summary = extracted.Summary,
+            observations = extracted.Observations ?? [],
+            factors = extracted.Factors ?? [],
+            actions = extracted.Actions ?? [],
+            citations = extracted.Citations ?? [],
+            tags = extracted.Tags ?? []
+        });
+
+        var verifyResult = await _kernel.InvokeAsync(
+            _verifyFunction,
+            new() { { "rawText", rawText }, { "typeInstructions", typeInstructions }, { "extractedJson", extractedJson } },
+            ct
+        );
+
+        var verifiedJson = verifyResult.GetValue<string>();
+
+        if (string.IsNullOrWhiteSpace(verifiedJson))
+            return null;
+
+        verifiedJson = CleanupJson(verifiedJson);
+
+        var model = JsonSerializer.Deserialize<LlmExtractResult>(verifiedJson, _jsonOptions);
+
+        if (model is null || string.IsNullOrWhiteSpace(model.Summary))
+            return null;
+
+        var corrected = new HealthTopic
+        {
+            Id = extracted.Id,
+            // Name is intentionally preserved from the original — the verifier must not rename topics
+            Name = extracted.Name,
+            OriginalName = extracted.OriginalName,
+            Summary = ToSentenceCase(model.Summary),
+            Observations = NormalizeList(model.Observations ?? [], ToSentenceCase),
+            Factors = NormalizeList(model.Factors ?? [], ToSentenceCase),
+            Actions = NormalizeList(model.Actions ?? [], ToSentenceCase),
+            Citations = model.Citations ?? [],
+            Tags = NormalizeList(model.Tags ?? [], s => s.ToLowerInvariant()),
+            Category = extracted.Category,
+            TopicType = extracted.TopicType,
+            RawSource = extracted.RawSource,
+            SourceHash = extracted.SourceHash,
+            LastSourceRefresh = extracted.LastSourceRefresh,
+            LastUpdated = extracted.LastUpdated,
+            Version = extracted.Version,
+            NeedsLlmReprocessing = extracted.NeedsLlmReprocessing
+        };
+
+        var summaryChanged = !string.Equals(corrected.Summary, extracted.Summary, StringComparison.Ordinal);
+        var fieldsChanged = corrected.Observations?.SequenceEqual(extracted.Observations ?? [], StringComparer.Ordinal) == false
+            || corrected.Factors?.SequenceEqual(extracted.Factors ?? [], StringComparer.Ordinal) == false
+            || corrected.Actions?.SequenceEqual(extracted.Actions ?? [], StringComparer.Ordinal) == false;
+
+        if (summaryChanged || fieldsChanged)
+            _logger?.LogVerificationCorrected(extracted.Name);
+
+        return corrected;
     }
 
     private static readonly HashSet<string> ValidTopicTypes = new(StringComparer.OrdinalIgnoreCase)

@@ -161,6 +161,13 @@ internal sealed class TopicRefreshService(
             {
                 await Task.Delay(LlmThrottle, ct);
                 var structured = await _llmProcessor.ParseHealthTopicAsync(topic.RawSource, topic.TopicType, topic.Name, ct);
+
+                if (structured is not null)
+                {
+                    await Task.Delay(LlmThrottle, ct);
+                    structured = await _llmProcessor.VerifyHealthTopicAsync(topic.RawSource, structured, ct) ?? structured;
+                }
+
                 return (topic, structured, skip: false, error: (Exception?)null);
             }
             catch (Exception ex)

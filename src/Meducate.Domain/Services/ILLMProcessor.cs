@@ -5,6 +5,7 @@ namespace Meducate.Domain.Services;
 internal interface ILLMProcessor
 {
     Task<HealthTopic?> ParseHealthTopicAsync(string rawText, string? topicType = null, string? discoveredName = null, CancellationToken ct = default);
+    Task<HealthTopic?> VerifyHealthTopicAsync(string rawText, HealthTopic extracted, CancellationToken ct = default);
     Task<Dictionary<string, string>> ClassifyTopicNamesAsync(IReadOnlyList<TopicClassifyInput> topics, CancellationToken ct = default);
     Task<Dictionary<string, string>> ClassifyTopicCategoriesAsync(IReadOnlyList<TopicCategoryInput> topics, CancellationToken ct = default);
     Task<BroaderNameResult> CompareBroaderNameAsync(string candidate, string existing, CancellationToken ct = default);
@@ -18,6 +19,7 @@ internal interface ILLMProcessorLogger
     void LogInvalidClassification(string topicName, string invalidType);
     void LogInvalidCategoryPair(string topicName, string type, string category);
     void LogBatchError(string operation, int batchSize, Exception exception);
+    void LogVerificationCorrected(string topicName);
 }
 
 internal sealed record BroaderNameResult(string PreferredName, bool ShouldReplace);

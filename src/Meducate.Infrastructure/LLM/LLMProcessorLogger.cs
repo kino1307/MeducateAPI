@@ -18,4 +18,7 @@ internal sealed class LLMProcessorLogger(ILogger<SemanticKernelLLMProcessor> log
 
     public void LogBatchError(string operation, int batchSize, Exception exception) =>
         _logger.LogError(exception, "LLM batch operation '{Operation}' failed for batch of {BatchSize} topics", operation, batchSize);
+
+    public void LogVerificationCorrected(string topicName) =>
+        _logger.LogWarning("LLM verification corrected extracted content for topic '{Topic}'", topicName);
 }
