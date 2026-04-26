@@ -369,7 +369,7 @@ internal sealed class TopicIngestionService(
         var categorizedCount = await _backfillService.BackfillCategoriesAsync(ct, console);
 
         // 13. Remove any topics that still have no ICD-10 category — only categorised topics are served
-        var uncategorized = await _writeRepo.GetUncategorizedTopicsAsync(ct);
+        var uncategorized = await _queryRepo.GetUncategorizedTopicsAsync(ct);
         var uncategorizedRemovedCount = 0;
         if (uncategorized.Count > 0)
         {
