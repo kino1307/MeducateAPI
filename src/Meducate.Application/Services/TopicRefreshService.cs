@@ -355,25 +355,38 @@ internal sealed class TopicRefreshService(
             }
         }
 
-        // Phase 4 — Flag any topics with empty structured fields for next reprocessing cycle
+        // Phase 4 — Remove any topics still without an ICD-10 category after Phase 3
+        var stillUncategorized = await _queryRepo.GetUncategorizedTopicsAsync(ct);
+        var uncategorizedRemovedCount = 0;
+        if (stillUncategorized.Count > 0)
+        {
+            _logger.LogWarning("Removing {Count} topics with no ICD-10 category after refresh: {Names}",
+                stillUncategorized.Count, string.Join(", ", stillUncategorized.Select(t => t.Name)));
+            console?.WriteLine($"Phase 4: Removing {stillUncategorized.Count} topics with no ICD-10 category.");
+            await _writeRepo.RemoveRangeAsync(stillUncategorized, ct);
+            await _writeRepo.SaveChangesAsync(ct);
+            uncategorizedRemovedCount = stillUncategorized.Count;
+        }
+
+        // Phase 5 — Flag any topics with empty structured fields for next reprocessing cycle
         var emptyFieldsCount = await _backfillService.BackfillEmptyStructuredFieldsAsync(ct, console);
 
-        if (reprocessedCount > 0 || categorizedCount > 0 || emptyFieldsCount > 0)
+        if (reprocessedCount > 0 || categorizedCount > 0 || emptyFieldsCount > 0 || uncategorizedRemovedCount > 0)
         {
             _topicRepo.InvalidateCache();
             if (_logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("Cache invalidated after reprocessing {Reprocessed}, categorizing {Categorized}, flagging {EmptyFields} empty-field topics",
-                    reprocessedCount, categorizedCount, emptyFieldsCount);
+                _logger.LogInformation("Cache invalidated after reprocessing {Reprocessed}, categorizing {Categorized}, removing uncategorized {Uncategorized}, flagging {EmptyFields} empty-field topics",
+                    reprocessedCount, categorizedCount, uncategorizedRemovedCount, emptyFieldsCount);
             }
         }
 
         if (_logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation("Topic refresh complete — refreshed {Refreshed}, reprocessed {Reprocessed}, categorized {Categorized}, flagged {EmptyFields} empty-field topics",
-                toRefresh.Count, reprocessedCount, categorizedCount, emptyFieldsCount);
+            _logger.LogInformation("Topic refresh complete — refreshed {Refreshed}, reprocessed {Reprocessed}, categorized {Categorized}, removed uncategorized {Uncategorized}, flagged {EmptyFields} empty-field topics",
+                toRefresh.Count, reprocessedCount, categorizedCount, uncategorizedRemovedCount, emptyFieldsCount);
         }
-        console?.WriteLine($"Done — {refreshed} refreshed, {reprocessedCount} reprocessed, {categorizedCount} categorized, {emptyFieldsCount} flagged for empty fields.");
+        console?.WriteLine($"Done — {refreshed} refreshed, {reprocessedCount} reprocessed, {categorizedCount} categorized, {uncategorizedRemovedCount} removed (no category), {emptyFieldsCount} flagged for empty fields.");
     }
 
     private async Task<List<RawTopicData>> FetchAllProvidersAsync(HealthTopic topic, CancellationToken ct)

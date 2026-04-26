@@ -368,13 +368,27 @@ internal sealed class TopicIngestionService(
         // 12. Backfill categories for topics missing them (including ones just cleared above)
         var categorizedCount = await _backfillService.BackfillCategoriesAsync(ct, console);
 
+        // 13. Remove any topics that still have no ICD-10 category — only categorised topics are served
+        var uncategorized = await _writeRepo.GetUncategorizedTopicsAsync(ct);
+        var uncategorizedRemovedCount = 0;
+        if (uncategorized.Count > 0)
+        {
+            _logger.LogWarning("Removing {Count} topics that could not be assigned an ICD-10 category: {Names}",
+                uncategorized.Count, string.Join(", ", uncategorized.Select(t => t.Name)));
+            console?.WriteLine($"Removing {uncategorized.Count} topics with no ICD-10 category: {string.Join(", ", uncategorized.Select(t => t.Name))}");
+            await _writeRepo.RemoveRangeAsync(uncategorized, ct);
+            await _writeRepo.SaveChangesAsync(ct);
+            uncategorizedRemovedCount = uncategorized.Count;
+        }
+
         if (addedCount > 0 || removedCount > 0 || backfilledCount > 0 || categorizedCount > 0
-            || backfilledOriginalNames > 0 || emptyFieldsCount > 0 || badCategoriesCount > 0)
+            || backfilledOriginalNames > 0 || emptyFieldsCount > 0 || badCategoriesCount > 0
+            || uncategorizedRemovedCount > 0)
             _topicRepo.InvalidateCache();
 
         if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("Medical data ingestion complete — added {Added}, removed {Removed}, backfilled types {Backfilled}, backfilled originals {BackfilledOriginals}, categorized {Categorized}, flagged empty {EmptyFields}, cleared bad categories {BadCategories}",
-                addedCount, removedCount, backfilledCount, backfilledOriginalNames, categorizedCount, emptyFieldsCount, badCategoriesCount);
+            _logger.LogInformation("Medical data ingestion complete — added {Added}, removed {Removed}, backfilled types {Backfilled}, backfilled originals {BackfilledOriginals}, categorized {Categorized}, flagged empty {EmptyFields}, cleared bad categories {BadCategories}, removed uncategorized {Uncategorized}",
+                addedCount, removedCount, backfilledCount, backfilledOriginalNames, categorizedCount, emptyFieldsCount, badCategoriesCount, uncategorizedRemovedCount);
 
         console?.WriteLine($"Discovery complete — added {addedCount}, removed {removedCount}, backfilled {backfilledCount} types, {backfilledOriginalNames} original names, categorized {categorizedCount}, flagged {emptyFieldsCount} empty, cleared {badCategoriesCount} bad categories.");
     }
