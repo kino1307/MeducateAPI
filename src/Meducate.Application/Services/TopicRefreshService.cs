@@ -147,6 +147,8 @@ internal sealed class TopicRefreshService(
         console?.WriteLine($"Phase 2: {toReprocess.Count} topics need LLM reprocessing.");
 
         var reprocessedCount = 0;
+        var completedLlm = 0;
+        var total = toReprocess.Count;
 
         // Parallelize LLM calls with bounded concurrency, then apply results sequentially.
         // Cancellations are captured as errors so completed work is not discarded.
@@ -154,7 +156,11 @@ internal sealed class TopicRefreshService(
         var llmTasks = toReprocess.Select(async topic =>
         {
             if (string.IsNullOrWhiteSpace(topic.RawSource) || topic.RawSource.Length < TopicConstants.MinSourceLength)
+            {
+                var n = Interlocked.Increment(ref completedLlm);
+                console?.WriteLine($"  [{n}/{total}] Skipped (source too short): {topic.Name}");
                 return (topic, structured: null, skip: true, error: null);
+            }
 
             await llmSemaphore.WaitAsync(ct);
             try
@@ -168,10 +174,14 @@ internal sealed class TopicRefreshService(
                     structured = await _llmProcessor.VerifyHealthTopicAsync(topic.RawSource, structured, ct) ?? structured;
                 }
 
+                var n = Interlocked.Increment(ref completedLlm);
+                console?.WriteLine($"  [{n}/{total}] Processed: {topic.Name}");
                 return (topic, structured, skip: false, error: (Exception?)null);
             }
             catch (Exception ex)
             {
+                var n = Interlocked.Increment(ref completedLlm);
+                console?.WriteLine($"  [{n}/{total}] Error: {topic.Name} — {ex.Message}");
                 return (topic, structured: null, skip: false, error: ex);
             }
             finally
