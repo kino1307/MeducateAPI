@@ -125,17 +125,27 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             You are given the same context used during extraction so you understand how each
             field should be interpreted for this topic type.
 
+            The source may contain multiple providers separated by --- with [SourceName]
+            headers. Use all sections when verifying — do not limit your check to one provider.
+
             {{$typeInstructions}}
 
             FIELD RULES — identical to those used during extraction:
             - "name": the medical condition name. Do NOT change this under any circumstances.
             - "summary": up to 6 sentences paraphrasing ONLY what the source text states.
-              Do not add context, background, or elaboration not present in the source.
-              Preserve all qualifiers, caveats, and restrictions exactly as the source states
-              them (e.g. if the source says "aspirin (for adults)", the summary must retain
-              that restriction — do not silently generalise).
+              Do not add context, background, elaboration, or closing remarks not present in
+              the source. Never pad with generic sentences (e.g. "This condition requires
+              careful monitoring") — every sentence must trace to a specific statement in
+              the source. Preserve all qualifiers, caveats, and restrictions exactly as the
+              source states them (e.g. if the source says "aspirin (for adults)", the summary
+              must retain that restriction). Do not silently drop important content that is
+              explicitly stated in the source — if the source states both X and Y, the summary
+              must not omit Y entirely.
             - "observations", "factors", "actions": concise items traceable to the source text.
-              "actions" must contain only interventions applied AFTER the condition is present.
+              "actions" must contain only interventions applied AFTER the condition is present
+              (treatments, management, self-care). Do NOT include prevention advice for people
+              who have not yet developed the condition. Only return [] if the source provides
+              no relevant context at all for a field.
             - "citations": only named organisations or guidelines explicitly referenced in the
               source text. Return [] if none are named.
             - "tags": terms drawn directly from the source text.
@@ -143,16 +153,27 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
             WHAT TO CORRECT:
             1. Dropped qualifiers or caveats — e.g. source says "aspirin (for adults)" but
                extraction omits "(for adults)". Restore the qualification.
-            2. Out-of-scope content — e.g. veterinary information mixed into a human medical
+            2. Omitted content — important facts, qualifiers, or categories explicitly stated
+               in the source that are absent from the extraction. If the source lists multiple
+               distinct items (e.g. types of a disease), the summary must not silently drop
+               one of them.
+            3. AI padding — generic wrap-up or transitional sentences with no grounding in the
+               source (e.g. "This condition requires careful monitoring and treatment based on
+               its progression", "Recognising these diseases is critical for effective
+               management"). Remove these entirely.
+            4. Out-of-scope content — e.g. veterinary information mixed into a human medical
                topic, or general knowledge added beyond what the source contains.
-            3. Inaccurate paraphrasing that changes or reverses the meaning of the source.
-            4. Structured field items (observations/factors/actions) not supported by the source.
+            5. Inaccurate paraphrasing that changes or reverses the meaning of the source.
+            6. Structured field items (observations/factors/actions) not supported by the source.
 
             WHAT NOT TO DO:
             - Do NOT change the "name" field.
             - Do NOT add new information absent from both the source and the extraction.
             - Do NOT penalise light interpretation of descriptive prose into structured items —
-              the extractor was permitted to break down prose into individual entries.
+              the extractor was permitted to break down prose into individual entries provided
+              those entries are traceable to the source.
+            - Do NOT over-correct by removing content that is genuinely supported by the source,
+              even if it appears in a different section or requires light inference from prose.
             - If a field is correct, return it exactly as provided.
 
             Return raw JSON only, no code fences, no explanation.
