@@ -198,7 +198,9 @@ internal sealed class TopicIngestionService(
                 await Task.Delay(LlmThrottle, ct);
                 var structured = await _llmProcessor.ParseHealthTopicAsync(mergedRawSource, topicType, group.Key, ct);
 
-                if (structured is not null)
+                // Only verify if extraction quality is good enough — no point running a second
+                // LLM call on output that will be flagged for retry regardless
+                if (structured is not null && TopicHelpers.CheckTopicQuality(structured) is null)
                 {
                     await Task.Delay(LlmThrottle, ct);
                     structured = await _llmProcessor.VerifyHealthTopicAsync(mergedRawSource, structured, ct) ?? structured;
