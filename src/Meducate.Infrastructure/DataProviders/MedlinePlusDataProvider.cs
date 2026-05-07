@@ -46,8 +46,13 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             if (match is null)
                 return null;
 
-            var portalText = await FetchPageTextAsync(match.Url, MaxPortalPageChars, ct);
+            // Fetch encyclopedia first — if available, skip the portal page entirely.
+            // Portal pages are mostly navigation chrome and link lists; the XML summary
+            // is cleaner and the encyclopedia covers the clinical detail.
             var encyclopediaText = await FetchFirstEncyclopediaArticleAsync(match.EncyclopediaUrls, ct);
+            string? portalText = null;
+            if (string.IsNullOrWhiteSpace(encyclopediaText))
+                portalText = await FetchPageTextAsync(match.Url, MaxPortalPageChars, ct);
             var rawText = BuildRawText(match, portalText, encyclopediaText);
 
             return new RawTopicData(topicName, rawText, SourceName, match.Groups, ContentHasher.ComputeHash(rawText));
@@ -211,14 +216,17 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         var parts = new List<string>();
         foreach (var url in urls)
         {
-            var text = await FetchPageTextAsync(url, MaxEncyclopediaChars, ct);
+            // Clean chrome before truncating so the char budget is spent on
+            // clinical content rather than navigation boilerplate.
+            var text = await FetchPageTextAsync(url, MaxEncyclopediaChars, ct, CleanEncyclopediaText);
             if (!string.IsNullOrWhiteSpace(text))
                 parts.Add(text);
         }
         return parts.Count > 0 ? string.Join("\n\n---\n\n", parts) : null;
     }
 
-    private async Task<string?> FetchPageTextAsync(string? url, int maxChars, CancellationToken ct)
+    private async Task<string?> FetchPageTextAsync(string? url, int maxChars, CancellationToken ct,
+        Func<string, string>? cleaner = null)
     {
         if (string.IsNullOrWhiteSpace(url))
             return null;
@@ -228,6 +236,9 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
             await Task.Delay(PageFetchDelay, ct);
             var html = await _httpClient.GetStringAsync(url, ct);
             var text = StripHtmlTags(html);
+
+            if (cleaner is not null)
+                text = cleaner(text);
 
             if (text.Length > maxChars)
             {
@@ -244,6 +255,24 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         }
     }
 
+    private static string CleanEncyclopediaText(string text)
+    {
+        // Strip the consistent navigation header on MedlinePlus encyclopedia pages.
+        // Every article ends its chrome with this phrase before the clinical content begins.
+        const string headerMarker = "please enable JavaScript.";
+        var headerEnd = text.IndexOf(headerMarker, StringComparison.OrdinalIgnoreCase);
+        if (headerEnd >= 0)
+            text = text[(headerEnd + headerMarker.Length)..].TrimStart();
+
+        // Strip the editorial footer. "Review Date" is specific to the encyclopedia
+        // footer and does not appear in clinical article body text.
+        var footerStart = text.IndexOf("Review Date", StringComparison.OrdinalIgnoreCase);
+        if (footerStart > 0)
+            text = text[..footerStart].TrimEnd();
+
+        return text;
+    }
+
     private static string BuildRawText(ParsedTopic topic, string? portalText, string? encyclopediaText)
     {
         var parts = new List<string>();
@@ -251,16 +280,22 @@ internal sealed partial class MedlinePlusDataProvider(HttpClient httpClient, ILo
         if (!string.IsNullOrWhiteSpace(topic.PrimaryInstitute))
             parts.Add($"[Source: {topic.PrimaryInstitute}]");
 
-        // Prefer encyclopedia article as it has structured symptoms/causes/treatments.
-        // Include portal text as context if available.
-        if (!string.IsNullOrWhiteSpace(portalText))
-            parts.Add(portalText);
-
         if (!string.IsNullOrWhiteSpace(encyclopediaText))
-            parts.Add($"[Encyclopedia Article]\n{encyclopediaText}");
-
-        if (parts.Count == (string.IsNullOrWhiteSpace(topic.PrimaryInstitute) ? 0 : 1))
+        {
+            // Use the clean XML summary as a concise intro and let the encyclopedia
+            // article cover the structured clinical detail. The portal page is skipped
+            // when encyclopedia content is available (see FetchTopicDataAsync).
             parts.Add(topic.Summary);
+            parts.Add($"[Encyclopedia Article]\n{encyclopediaText}");
+        }
+        else if (!string.IsNullOrWhiteSpace(portalText))
+        {
+            parts.Add(portalText);
+        }
+        else
+        {
+            parts.Add(topic.Summary);
+        }
 
         return string.Join("\n\n", parts);
     }

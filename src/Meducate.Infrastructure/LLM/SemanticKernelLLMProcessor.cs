@@ -13,7 +13,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
     private readonly ILLMProcessorLogger? _logger = logger;
 
     private const int MaxRawTextSize = 10 * 1024 * 1024;
-    private const int MaxLlmInputChars = 8_000;
     private const int MaxTopicNameLength = 200;
     private const int ClassifyBatchSize = 50;
     private const int CategoryBatchSize = 50;
@@ -587,7 +586,7 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
 
         var extractResult = await _kernel.InvokeAsync(
             _extractFunction,
-            new() { { "rawText", TruncateForLlm(rawText) }, { "typeInstructions", typeInstructions }, { "nameInstruction", nameInstruction } },
+            new() { { "rawText", rawText }, { "typeInstructions", typeInstructions }, { "nameInstruction", nameInstruction } },
             ct
         );
 
@@ -648,7 +647,7 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
 
         var verifyResult = await _kernel.InvokeAsync(
             _verifyFunction,
-            new() { { "rawText", TruncateForLlm(rawText) }, { "typeInstructions", typeInstructions }, { "extractedJson", extractedJson } },
+            new() { { "rawText", rawText }, { "typeInstructions", typeInstructions }, { "extractedJson", extractedJson } },
             ct
         );
 
@@ -946,21 +945,6 @@ internal sealed partial class SemanticKernelLLMProcessor(Kernel kernel, ILLMProc
         return allMatched;
     }
 
-    private static string TruncateForLlm(string text)
-    {
-        if (text.Length <= MaxLlmInputChars)
-            return text;
-
-        var region = text[..MaxLlmInputChars];
-        // Prefer ending at a sentence boundary
-        var lastSentence = region.LastIndexOfAny(['.', '!', '?']);
-        if (lastSentence > MaxLlmInputChars / 2)
-            return region[..(lastSentence + 1)];
-
-        // Fall back to word boundary
-        var lastSpace = region.LastIndexOf(' ');
-        return lastSpace > 0 ? region[..lastSpace] : region;
-    }
 
     private static string? TruncateToSentence(string? text, int maxLength)
     {
