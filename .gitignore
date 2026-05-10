@@ -49,7 +49,8 @@ Desktop.ini
 .claude/*
 !.claude/memory/
 .claude/memory/*
-!.claude/memory/*.md
+!.claude/memory/MEMORY.md
+!.claude/memory/architecture.md
 
 ## Windows reserved names
 nul
