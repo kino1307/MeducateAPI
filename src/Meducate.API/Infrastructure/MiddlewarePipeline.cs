@@ -91,6 +91,7 @@ internal static class MiddlewarePipeline
         app.MapAuthEndpoints();
         app.MapOrgEndpoints();
         app.MapTopicEndpoints();
+        app.MapInternalEndpoints();
 
         return app;
     }
