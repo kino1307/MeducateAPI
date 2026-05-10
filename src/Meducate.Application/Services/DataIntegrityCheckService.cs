@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Hangfire.Console;
 using Hangfire.Server;
+using Meducate.Application.Jobs;
 using Meducate.Domain.Repositories;
 using Meducate.Domain.Services;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ internal sealed partial class DataIntegrityCheckService(
     internal const int BatchSize = 50;
     private const double OverlapWarnThreshold = 0.25;
 
-    internal async Task RunAsync(PerformContext? console, CancellationToken ct)
+    internal async Task<JobRunResult> RunAsync(PerformContext? console, CancellationToken ct)
     {
         var validCategories = _llmProcessor.GetValidCategories();
         var failures = new List<string>();
@@ -53,7 +54,7 @@ internal sealed partial class DataIntegrityCheckService(
         {
             console?.WriteLine("No served topics found — skipping batch check.");
             _logger.LogWarning("Data integrity check: no served topics found");
-            return;
+            return new JobRunResult(DateTimeOffset.UtcNow, 0, 0, 0, 0, failures.Count, 0, failures);
         }
 
         var totalBatches = (int)Math.Ceiling((double)servedCount / BatchSize);
@@ -139,18 +140,29 @@ internal sealed partial class DataIntegrityCheckService(
             {
                 _logger.LogWarning("Data integrity failures found but Admin:AlertEmail is not configured — no alert sent");
                 console?.WriteLine("[WARN] Admin:AlertEmail not configured — alert email not sent.");
-                return;
             }
-
-            await _emailService.SendDataIntegrityAlertAsync(
-                alertEmail,
-                failures.Count,
-                warnings.Count,
-                batch.Count,
-                batchIndex,
-                totalBatches,
-                failures);
+            else
+            {
+                await _emailService.SendDataIntegrityAlertAsync(
+                    alertEmail,
+                    failures.Count,
+                    warnings.Count,
+                    batch.Count,
+                    batchIndex,
+                    totalBatches,
+                    failures);
+            }
         }
+
+        return new JobRunResult(
+            DateTimeOffset.UtcNow,
+            0, // duration is set by the job after RunAsync returns
+            batchIndex,
+            totalBatches,
+            batch.Count,
+            failures.Count,
+            warnings.Count,
+            failures);
     }
 
     // Returns the fraction of meaningful summary terms that also appear in the source text.

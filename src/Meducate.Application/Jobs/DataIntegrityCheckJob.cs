@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
@@ -8,20 +9,25 @@ namespace Meducate.Application.Jobs;
 
 internal sealed class DataIntegrityCheckJob(
     DataIntegrityCheckService checkService,
+    JobResultStore resultStore,
     ILogger<DataIntegrityCheckJob> logger)
 {
     private readonly DataIntegrityCheckService _checkService = checkService;
+    private readonly JobResultStore _resultStore = resultStore;
     private readonly ILogger<DataIntegrityCheckJob> _logger = logger;
 
     [DisableConcurrentExecution(timeoutInSeconds: 0)]
     public async Task ExecuteAsync(IJobCancellationToken jobCancellationToken, PerformContext? context = null)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             var ct = jobCancellationToken.ShutdownToken;
             _logger.LogInformation("Starting data integrity check job");
             context?.WriteLine("Starting data integrity check...");
-            await _checkService.RunAsync(context, ct);
+            var result = await _checkService.RunAsync(context, ct);
+            sw.Stop();
+            _resultStore.Set("data-integrity-check", result with { DurationMs = sw.ElapsedMilliseconds });
             _logger.LogInformation("Data integrity check job completed");
             context?.WriteLine("Data integrity check completed.");
         }
